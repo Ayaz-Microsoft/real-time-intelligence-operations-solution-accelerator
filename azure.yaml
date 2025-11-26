@@ -9,11 +9,22 @@ hooks:
   postprovision:
     windows:
       shell: pwsh
-      run: ./infra/scripts/utils/Run-FabricRTIPythonScript.ps1
+      run: ./infra/scripts/utils/Run-DeployFabricRtiPythonScript.ps1
       interactive: true
       continueOnError: false
     posix:
       shell: pwsh
-      run: ./infra/scripts/utils/Run-FabricRTIPythonScript.ps1 -SkipPythonVirtualEnvironment
+      run: ./infra/scripts/utils/Run-DeployFabricRtiPythonScript.ps1 -SkipPythonVirtualEnvironment
+      interactive: true
+      continueOnError: false
+  predown:
+    windows:
+      shell: pwsh
+      run: ./infra/scripts/utils/Run-RemoveFabricRtiPythonScript.ps1
+      interactive: true
+      continueOnError: false
+    posix:
+      shell: pwsh
+      run: ./infra/scripts/utils/Run-RemoveFabricRtiPythonScript.ps1 -SkipPythonVirtualEnvironment
       interactive: true
       continueOnError: false

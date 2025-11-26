@@ -102,7 +102,7 @@ try {
     # Script is located at infra\scripts\utils\Run-FabricRTIPythonScript.ps1
     $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
     $FabricScriptDir = Join-Path (Split-Path -Parent $ScriptDir) "fabric"
-    $RequirementsPath = Join-Path $FabricScriptDir "requirements.txt"
+    $RequirementsPath = Join-Path $RepoRoot "requirements.txt"
     $pythonExec = Initialize-PythonEnvironment -RepoRoot $RepoRoot -SkipVirtualEnv:$SkipPythonVirtualEnvironment -SkipDependencies $False -SkipPipUpgrade $False -RequirementsPath $RequirementsPath
 
     Push-Location $FabricScriptDir
