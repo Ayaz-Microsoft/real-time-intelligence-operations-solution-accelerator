@@ -48,7 +48,7 @@ fi
 
 # Install additional development tools
 echo "🛠️ Installing development tools..."
-if ! python3 -m pip install --user \
+if ! python3 -m pip install \
     black \
     flake8 \
     pytest \
@@ -66,14 +66,14 @@ echo "✅ Development tools installed successfully"
 echo "✅ Verifying tool installations..."
 echo "Azure CLI version: $(az --version | head -n 1)"
 echo "Azure Developer CLI version: $(azd version)"
-echo "Python version: $(python --version)"
+echo "Python version: $(python3 --version)"
 echo "Git version: $(git --version)"
 
 # Set up additional git configuration (base git config handled by devcontainer feature)
 echo "📝 Setting up additional git configuration..."
-git config --global init.defaultBranch main
-git config --global pull.rebase true
-git config --global core.autocrlf input
+git config --global init.defaultBranch main || true
+git config --global pull.rebase true || true
+git config --global core.autocrlf input || true
 
 # Create helpful aliases
 echo "🔗 Setting up helpful aliases..."
@@ -90,11 +90,15 @@ find ./infra/scripts -name "*.sh" -type f -exec sed -i 's/\r$//' {} \;
 
 # Add virtual environment directories to .gitignore if not already present
 echo "📝 Updating .gitignore for virtual environments..."
-if ! grep -q "\.venv/" .gitignore 2>/dev/null; then
-    echo "" >> .gitignore
-    echo "# Python virtual environments" >> .gitignore
-    echo ".venv/" >> .gitignore
-    echo "*/.venv/" >> .gitignore
+if [ -f .gitignore ]; then
+    if ! grep -q "\.venv/" .gitignore 2>/dev/null; then
+        echo "" >> .gitignore
+        echo "# Python virtual environments" >> .gitignore
+        echo ".venv/" >> .gitignore
+        echo "*/.venv/" >> .gitignore
+    fi
+else
+    echo "⚠️ Warning: .gitignore not found, skipping virtual environment configuration"
 fi
 
 # Create workspace info
