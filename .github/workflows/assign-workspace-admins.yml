@@ -47,9 +47,10 @@ jobs:
         run: |
           echo "Running fabric workspace administrators assignment..."
 
-          # Run the PowerShell script to add administrators to all workspaces
-          pwsh ./Run-FabricWorkspaceAdministratorsPythonScript.ps1 \
-            -FabricAdminsByObjectId '${{ env.AZURE_FABRIC_WORKSPACE_ADMINISTRATORS }}' \
+          # Run the unified PowerShell script to add administrators to all workspaces
+          pwsh ./Run-PythonScript.ps1 \
+            -ScriptPath "infra/scripts/fabric/add_fabric_workspace_admins.py" \
+            -ScriptArguments @("--fabricAdminsByObjectId", '${{ env.AZURE_FABRIC_WORKSPACE_ADMINISTRATORS }}') \
             -SkipPythonVirtualEnvironment \
             -SkipPythonDependencies \
             -SkipPipUpgrade

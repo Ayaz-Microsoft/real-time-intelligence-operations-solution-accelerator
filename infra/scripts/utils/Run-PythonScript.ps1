@@ -1,12 +1,21 @@
 <#
 .SYNOPSIS
-    Removes Microsoft Fabric workspace for the Real-Time Intelligence Operations Solution Accelerator.
+    Unified script to execute Python scripts for Microsoft Fabric operations.
 
 .DESCRIPTION
-    Orchestrates the removal of RTI workspace from Microsoft Fabric including:
-    • Workspace lookup and verification
-    • Safe deletion with confirmation prompts
-    • Comprehensive error handling and user guidance
+    A unified PowerShell script that handles Python environment initialization and execution
+    of any Python script within the repository. Supports all common Python environment
+    options and parameter passing to the target Python script.
+
+.PARAMETER ScriptPath
+    Relative path to the Python script to execute (relative to repository root).
+    Examples: 
+    - "infra/scripts/fabric/deploy_fabric_rti.py"
+    - "infra/scripts/fabric/remove_fabric_rti.py" 
+    - "infra/scripts/fabric/add_fabric_workspace_admins.py"
+
+.PARAMETER ScriptArguments
+    Optional array of arguments to pass to the Python script.
 
 .PARAMETER SkipPythonVirtualEnvironment
     Use system Python directly instead of creating virtual environment.
@@ -17,24 +26,32 @@
 .PARAMETER SkipPipUpgrade
     Skip upgrading pip to latest version.
 
+.PARAMETER RequirementsPath
+    Path to requirements.txt file. Defaults to repository root requirements.txt.
+
 .EXAMPLE
-    .\Run-RemoveFabricRtiPythonScript.ps1
+    .\Run-PythonScript.ps1 -ScriptPath "infra/scripts/fabric/deploy_fabric_rti.py"
     
 .EXAMPLE
-    .\Run-RemoveFabricRtiPythonScript.ps1 -SkipPythonVirtualEnvironment -SkipPythonDependencies
+    .\Run-PythonScript.ps1 -ScriptPath "infra/scripts/fabric/add_fabric_workspace_admins.py" -ScriptArguments @("--fabricAdmins", '["user@contoso.com"]')
+
+.EXAMPLE
+    .\Run-PythonScript.ps1 -ScriptPath "infra/scripts/fabric/remove_fabric_rti.py" -SkipPythonVirtualEnvironment -SkipPythonDependencies
 
 .NOTES
-    Prerequisites: Azure CLI (logged in), PowerShell 7+, Python 3.9+, appropriate Fabric workspace permissions
+    Prerequisites: PowerShell 7+, Python 3.9+
     
-    Required Environment Variables:
-    - SOLUTION_SUFFIX: Suffix to append to default workspace name
-    
-    Optional Environment Variables:
-    - FABRIC_WORKSPACE_NAME: Name of the Fabric workspace (uses default if not set)
-    - FABRIC_WORKSPACE_ID: ID of the Fabric workspace (GUID, overrides name-based lookup)
+    This unified script provides a consistent interface for executing Python scripts
+    across all Fabric operations with integrated environment management.
 #>
 
 param(
+    [Parameter(Mandatory = $true, HelpMessage = "Relative path to the Python script to execute (e.g., 'infra/scripts/fabric/deploy_fabric_rti.py')")]
+    [string]$ScriptPath,
+    
+    [Parameter(Mandatory = $false, HelpMessage = "Optional array of arguments to pass to the Python script")]
+    [string[]]$ScriptArguments = @(),
+    
     [Parameter(Mandatory = $false, HelpMessage = "Skip creating and using Python virtual environment (use system Python directly)")]
     [switch]$SkipPythonVirtualEnvironment,
     
@@ -42,13 +59,15 @@ param(
     [switch]$SkipPythonDependencies,
     
     [Parameter(Mandatory = $false, HelpMessage = "Skip upgrading pip to the latest version")]
-    [switch]$SkipPipUpgrade
+    [switch]$SkipPipUpgrade,
+    
+    [Parameter(Mandatory = $false, HelpMessage = "Path to requirements.txt file")]
+    [string]$RequirementsPath
 )
 
-# Set error action preference
 $ErrorActionPreference = "Stop"
 
-# Helper function for colored output
+# Helper functions for colored output
 function Write-Info { param([string]$Message) Write-Host $Message -ForegroundColor Cyan }
 function Write-Success { param([string]$Message) Write-Host $Message -ForegroundColor Green }
 function Write-Warning { param([string]$Message) Write-Host $Message -ForegroundColor Yellow }
@@ -67,7 +86,7 @@ function Get-PythonCommand {
     throw "Python is not installed or not available in PATH. Please install Python 3.9+ and try again."
 }
 
-# Helper function to setup Python environment
+# Function to initialize Python environment
 function Initialize-PythonEnvironment {
     param(
         [string]$RepoRoot,
@@ -140,41 +159,65 @@ function Initialize-PythonEnvironment {
     return $pythonExec
 }
 
-# Display configuration
-Write-Error "Starting Microsoft Fabric workspace removal script..."
+Write-Info "Starting Python script execution..."
 
 try {
-    # Calculate paths - script is now in utils, but fabric scripts are in ../fabric
+    # Calculate paths
     $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-    $FabricScriptsDir = Join-Path (Split-Path -Parent $ScriptDir) "fabric"
     $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
-    $RequirementsPath = Join-Path $RepoRoot "requirements.txt"
+    
+    # Set default requirements path if not provided
+    if ([string]::IsNullOrWhiteSpace($RequirementsPath)) {
+        $RequirementsPath = Join-Path $RepoRoot "requirements.txt"
+    }
+    
+    # Resolve the target Python script path
+    $TargetScriptPath = Join-Path $RepoRoot $ScriptPath
+    if (-not (Test-Path $TargetScriptPath)) {
+        throw "Python script not found: $TargetScriptPath"
+    }
+    
+    # Get the directory of the target script for working directory
+    $TargetScriptDir = Split-Path -Parent $TargetScriptPath
+    $TargetScriptName = Split-Path -Leaf $TargetScriptPath
+    
+    Write-Success "Target script: $TargetScriptPath"
+    Write-Success "Working directory: $TargetScriptDir"
     
     # Initialize Python environment
     $pythonExec = Initialize-PythonEnvironment -RepoRoot $RepoRoot -SkipVirtualEnv:$SkipPythonVirtualEnvironment -SkipDependencies:$SkipPythonDependencies -SkipPipUpgrade:$SkipPipUpgrade -RequirementsPath $RequirementsPath
-
-    # Execute Python removal script - change to fabric scripts directory
-    Push-Location $FabricScriptsDir
-    Write-Warning "Starting Fabric workspace removal..."
     
-    # Execute Python script (no arguments needed - uses environment variables)
-    & $pythonExec -u remove_fabric_rti.py
+    # Change to the target script directory and execute
+    Push-Location $TargetScriptDir
+    Write-Info "Executing Python script..."
+    
+    # Execute Python script with arguments
+    if ($ScriptArguments.Count -gt 0) {
+        Write-Warning "Arguments: $($ScriptArguments -join ' ')"
+        & $pythonExec -u $TargetScriptName @ScriptArguments
+    }
+    else {
+        & $pythonExec -u $TargetScriptName
+    }
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Success "✅ Fabric workspace removal completed successfully!"
+        Write-Success "✅ Python script execution completed successfully!"
     }
     else {
         throw "Python script execution failed with exit code: $LASTEXITCODE"
     }
 }
 catch {
-    Write-Error "❌ Removal failed: $($_.Exception.Message)"
+    Write-Error "❌ Script execution failed: $($_.Exception.Message)"
     Write-Host ""
     Write-Warning "Troubleshooting tips:"
     @(
         "1. Ensure you are logged in to Azure CLI: az login",
-        "2. Verify you have Admin permissions on the workspace to delete", 
-        "3. Ensure the workspace name or ID is correct and accessible"
+        "2. Verify you have appropriate permissions for the operation",
+        "3. Check that all required environment variables are set",
+        "4. Ensure the Python script path is correct and accessible",
+        "5. Verify Python 3.9+ is installed and available in PATH",
+        "6. Check that requirements.txt exists and is accessible"
     ) | ForEach-Object { Write-Host $_ -ForegroundColor White }
     exit 1
 }

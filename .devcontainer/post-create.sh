@@ -46,19 +46,6 @@ else
     echo "⚠️ Warning: ./requirements.txt not found"
 fi
 
-# Verify that other requirements files exist (for reference)
-if [ -f "./src/requirements.txt" ]; then
-    echo "✅ Source requirements.txt found"
-else
-    echo "ℹ️ Info: ./src/requirements.txt not found (optional)"
-fi
-
-if [ -f "./infra/scripts/databricks/requirements.txt" ]; then
-    echo "✅ Databricks script requirements.txt found"
-else
-    echo "ℹ️ Info: ./infra/scripts/databricks/requirements.txt not found (optional)"
-fi
-
 # Install additional development tools
 echo "🛠️ Installing development tools..."
 if ! python3 -m pip install --user \

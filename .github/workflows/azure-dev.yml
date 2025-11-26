@@ -180,9 +180,12 @@ jobs:
           echo "  FABRIC_ACTIVATOR_NAME: ${FABRIC_ACTIVATOR_NAME:-'(using default)'}"
           echo ""
 
-          # Run the PowerShell provisioning script with environment variables
-          pwsh ./Run-DeployFabricRtiPythonScript.ps1 \
+          # Run the unified PowerShell provisioning script with environment variables
+          pwsh ./Run-PythonScript.ps1 \
+            -ScriptPath "infra/scripts/fabric/deploy_fabric_rti.py" \
             -SkipPythonVirtualEnvironment \
+            -SkipPythonDependencies \
+            -SkipPipUpgrade \
             -SkipPythonDependencies \
             -SkipPipUpgrade
 
