@@ -23,7 +23,8 @@ import os
 import sys
 from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
 
-def setup_real_time_dashboard(workspace_id: str,
+def setup_real_time_dashboard(workspace_client: FabricWorkspaceApiClient,
+                              workspace_id: str,
                               dashboard_title: str,
                               rti_dashboard_file_path: str,
                               cluster_uri: str,
@@ -32,6 +33,7 @@ def setup_real_time_dashboard(workspace_id: str,
     Create or update a Real-Time Dashboard (KQL Dashboard) in the specified workspace.
     
     Args:
+        workspace_client: Authenticated FabricWorkspaceApiClient instance
         workspace_id: ID of the workspace where the dashboard will be created
         dashboard_title: Title/name for the dashboard
         rti_dashboard_file_path: Path to the JSON file containing the dashboard configuration
@@ -45,9 +47,8 @@ def setup_real_time_dashboard(workspace_id: str,
         Exception: If dashboard creation/update fails
     """
     try:
-        # Initialize the Fabric API client
-        print("🚀 Initializing Fabric API client...")
-        fabric_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+        # Use the provided workspace client
+        print("🔍 Using provided Fabric Workspace API client...")
 
         # Verify the dashboard file exists
         if not os.path.exists(rti_dashboard_file_path):
@@ -75,14 +76,14 @@ def setup_real_time_dashboard(workspace_id: str,
 
         # List all available dashboards to check if one with this title already exists
         print("🔍 Checking for existing dashboards...")
-        existing_dashboard = fabric_client.get_kql_dashboard_by_name(dashboard_title)
+        existing_dashboard = workspace_client.get_kql_dashboard_by_name(dashboard_title)
         
         if existing_dashboard:
             # Update the existing dashboard
             print(f"🔄 Updating existing dashboard '{dashboard_title}' (ID: {existing_dashboard.get('id')})...")
             dashboard_id = existing_dashboard.get('id')
             
-            update_success = fabric_client.update_kql_dashboard_content(
+            update_success = workspace_client.update_kql_dashboard_content(
                 dashboard_id=dashboard_id,
                 dashboard_definition_base64=dashboard_base64
             )
@@ -96,7 +97,7 @@ def setup_real_time_dashboard(workspace_id: str,
         else:
             # Create a new dashboard
             print(f"📊 Creating new dashboard '{dashboard_title}'...")
-            dashboard_result = fabric_client.create_kql_dashboard(
+            dashboard_result = workspace_client.create_kql_dashboard(
                 display_name=dashboard_title,
                 description=f"Real-Time Intelligence Dashboard: {dashboard_title}",
                 dashboard_definition_base64=dashboard_base64
@@ -159,13 +160,19 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    fabric_client = FabricApiClient()
+    base_client = FabricApiClient()
+    from fabric_auth import authenticate_workspace
+    
+    workspace_client = authenticate_workspace(args.workspace_id)
+    if not workspace_client:
+        print("❌ Failed to authenticate workspace-specific Fabric API client")
+        sys.exit(1)
     
     result = setup_real_time_dashboard(
-        fabric_client=fabric_client,
+        workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         dashboard_title=args.dashboard_title,
-        rti_dashboard_file_path=args.rti_dashboard_file_path,
+        rti_dashboard_file_path=args.dashboard_file,
         cluster_uri=args.cluster_uri,
         eventhouse_database_id=args.eventhouse_database_id
     )

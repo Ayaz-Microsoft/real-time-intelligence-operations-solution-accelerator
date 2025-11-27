@@ -114,7 +114,8 @@ def transform_activator_config(activator_config: list,
     
     return activator_config
 
-def update_activator_definition(workspace_id: str,
+def update_activator_definition(workspace_client: FabricWorkspaceApiClient,
+                              workspace_id: str,
                               activator_id: str,
                               activator_file_path: str,
                               eventstream_id: str = None,
@@ -124,6 +125,7 @@ def update_activator_definition(workspace_id: str,
     Update the definition of an existing Activator (Reflex) in the specified workspace.
     
     Args:
+        workspace_client: Authenticated FabricWorkspaceApiClient instance
         workspace_id: ID of the workspace where the activator exists (required)
         activator_id: ID of the existing activator to update (required)
         activator_file_path: Path to the JSON file containing the activator configuration (required)
@@ -145,13 +147,12 @@ def update_activator_definition(workspace_id: str,
         if not activator_id or not activator_id.strip():
             raise ValueError("activator_id is required and cannot be empty")
         
-        # Initialize the Fabric API client
-        print("🚀 Initializing Fabric API client...")
-        fabric_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+        # Use provided workspace client
+        print("🔍 Using provided Fabric Workspace API client...")
 
         # Verify the activator exists
         print(f"🔍 Verifying activator exists (ID: {activator_id})...")
-        existing_activator = fabric_client.get_activator_by_id(activator_id)
+        existing_activator = workspace_client.get_activator_by_id(activator_id)
         if not existing_activator:
             print(f"❌ Activator with ID '{activator_id}' not found in workspace")
             raise ValueError(f"Activator with ID '{activator_id}' not found in workspace '{workspace_id}'")
@@ -186,7 +187,7 @@ def update_activator_definition(workspace_id: str,
         # Update the existing activator
         print(f"🔄 Updating activator definition (ID: {activator_id})...")
         
-        update_success = fabric_client.update_activator_definition(
+        update_success = workspace_client.update_activator_definition(
             activator_id=activator_id,
             definition_base64=activator_base64
         )
@@ -195,7 +196,7 @@ def update_activator_definition(workspace_id: str,
             print(f"✅ Successfully updated activator definition")
             
             # Get updated activator information
-            updated_activator = fabric_client.get_activator_by_id(activator_id)
+            updated_activator = workspace_client.get_activator_by_id(activator_id)
             return updated_activator
         else:
             print(f"❌ Failed to update activator definition")
@@ -260,10 +261,15 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    fabric_client = FabricApiClient()
+    from fabric_auth import authenticate_workspace
+    
+    workspace_client = authenticate_workspace(args.workspace_id)
+    if not workspace_client:
+        print("❌ Failed to authenticate workspace-specific Fabric API client")
+        sys.exit(1)
     
     result = update_activator_definition(
-        fabric_client=fabric_client,
+        workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         activator_id=args.activator_id,
         activator_file_path=args.activator_file_path,

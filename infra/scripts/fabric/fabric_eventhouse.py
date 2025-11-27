@@ -88,16 +88,14 @@ def _rename_default_database(workspace_client: FabricWorkspaceApiClient,
     return False
 
 
-def setup_eventhouse(fabric_client: FabricApiClient,
-                    workspace_id: str, 
+def setup_eventhouse(workspace_client: FabricWorkspaceApiClient,
                     eventhouse_name: str,
                     database_name: Optional[str] = None) -> object:
     """
     Set up an Eventhouse in the specified workspace.
     
     Args:
-        fabric_client: Authenticated FabricApiClient instance (passed but not used - using workspace client)
-        workspace_id: ID of the target workspace
+        workspace_client: Authenticated FabricWorkspaceApiClient instance
         eventhouse_name: Name of the Eventhouse to create
         database_name: Optional name for the default database. If provided, 
                       the default database will be renamed from the eventhouse name to this name.
@@ -106,8 +104,7 @@ def setup_eventhouse(fabric_client: FabricApiClient,
         Eventhouse object if successful, None otherwise
     """
     try:
-        print(f"🚀 Initializing Fabric Workspace API client for workspace: {workspace_id}")
-        workspace_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+        print(f"🔍 Using provided Fabric Workspace API client...")
         
         print(f"🔍 Checking if Eventhouse '{eventhouse_name}' already exists...")
         existing_eventhouse = workspace_client.get_eventhouse_by_name(eventhouse_name)
@@ -195,11 +192,15 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    fabric_client = FabricApiClient()
+    from fabric_auth import authenticate_workspace
+    
+    workspace_client = authenticate_workspace(args.workspace_id)
+    if not workspace_client:
+        print("❌ Failed to authenticate workspace-specific Fabric API client")
+        sys.exit(1)
     
     result = setup_eventhouse(
-        fabric_client=fabric_client,
-        workspace_id=args.workspace_id,
+        workspace_client=workspace_client,
         eventhouse_name=args.eventhouse_name,
         database_name=args.database_name
     )

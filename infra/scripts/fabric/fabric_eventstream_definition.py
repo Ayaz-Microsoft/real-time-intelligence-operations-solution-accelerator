@@ -153,7 +153,7 @@ def transform_eventstream_config(eventstream_config: dict,
     
     return eventstream_config
 
-def update_eventstream_definition(fabric_client: FabricApiClient,
+def update_eventstream_definition(workspace_client: FabricWorkspaceApiClient,
                                 workspace_id: str,
                                 eventstream_id: str,
                                 eventstream_file_path: str,
@@ -170,7 +170,7 @@ def update_eventstream_definition(fabric_client: FabricApiClient,
     Update the definition of an existing Eventstream in the specified workspace.
     
     Args:
-        fabric_client: Authenticated FabricApiClient instance (passed but not used - using workspace client)
+        workspace_client: Authenticated FabricWorkspaceApiClient instance
         workspace_id: ID of the workspace where the eventstream exists (required)
         eventstream_id: ID of the existing eventstream to update (required)
         eventstream_file_path: Path to the JSON file containing the eventstream configuration (required)
@@ -198,13 +198,12 @@ def update_eventstream_definition(fabric_client: FabricApiClient,
         if not eventstream_id or not eventstream_id.strip():
             raise ValueError("eventstream_id is required and cannot be empty")
         
-        # Initialize the Fabric API client
-        print("🚀 Initializing Fabric API client...")
-        fabric_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+        # Use provided workspace client
+        print("🔍 Using provided Fabric Workspace API client...")
 
         # Verify the eventstream exists
         print(f"🔍 Verifying eventstream exists (ID: {eventstream_id})...")
-        existing_eventstream = fabric_client.get_eventstream_by_id(eventstream_id)
+        existing_eventstream = workspace_client.get_eventstream_by_id(eventstream_id)
         if not existing_eventstream:
             print(f"❌ Eventstream with ID '{eventstream_id}' not found in workspace")
             raise ValueError(f"Eventstream with ID '{eventstream_id}' not found in workspace '{workspace_id}'")
@@ -246,7 +245,7 @@ def update_eventstream_definition(fabric_client: FabricApiClient,
         # Update the existing eventstream
         print(f"🔄 Updating eventstream definition (ID: {eventstream_id})...")
         
-        update_success = fabric_client.update_eventstream_content(
+        update_success = workspace_client.update_eventstream_content(
             eventstream_id=eventstream_id,
             eventstream_definition_base64=eventstream_base64
         )
@@ -255,7 +254,7 @@ def update_eventstream_definition(fabric_client: FabricApiClient,
             print(f"✅ Successfully updated eventstream definition (ID: {eventstream_id})")
             
             # Get updated eventstream information
-            updated_eventstream = fabric_client.get_eventstream_by_id(eventstream_id)
+            updated_eventstream = workspace_client.get_eventstream_by_id(eventstream_id)
             return updated_eventstream
         else:
             print(f"❌ Failed to update eventstream definition")

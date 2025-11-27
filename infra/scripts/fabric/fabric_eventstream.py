@@ -19,13 +19,13 @@ import argparse
 import sys
 from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
 
-def create_eventstream(workspace_id: str,
+def create_eventstream(workspace_client: FabricWorkspaceApiClient,
                       eventstream_name: str = "rti_eventstream"):
     """
     Create an Eventstream in the specified workspace if it doesn't exist.
     
     Args:
-        workspace_id: ID of the workspace where the eventstream will be created (required)
+        workspace_client: Authenticated FabricWorkspaceApiClient instance
         eventstream_name: Name for the eventstream (required, whitespaces will be removed)
 
     Returns:
@@ -43,13 +43,12 @@ def create_eventstream(workspace_id: str,
         if not eventstream_name:
             raise ValueError("eventstream_name cannot be empty after removing whitespaces")
         
-        # Initialize the Fabric API client
-        print("🚀 Initializing Fabric API client...")
-        fabric_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+        # Use provided workspace client
+        print("🔍 Using provided Fabric Workspace API client...")
 
         # Check if eventstream already exists
         print("🔍 Checking for existing eventstream...")
-        existing_eventstream = fabric_client.get_eventstream_by_name(eventstream_name)
+        existing_eventstream = workspace_client.get_eventstream_by_name(eventstream_name)
         
         if existing_eventstream:
             print(f"✅ Eventstream '{eventstream_name}' already exists (ID: {existing_eventstream.get('id')})")
@@ -57,7 +56,7 @@ def create_eventstream(workspace_id: str,
         else:
             # Create a new eventstream with minimal configuration
             print(f"📊 Creating new eventstream '{eventstream_name}'...")
-            eventstream_result = fabric_client.create_eventstream(
+            eventstream_result = workspace_client.create_eventstream(
                 display_name=eventstream_name,
                 description=f"Eventstream: {eventstream_name}"
             )
@@ -106,10 +105,16 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    fabric_client = FabricApiClient()
+    base_client = FabricApiClient()
+    from fabric_auth import authenticate_workspace
+    
+    workspace_client = authenticate_workspace(args.workspace_id)
+    if not workspace_client:
+        print("❌ Failed to authenticate workspace-specific Fabric API client")
+        sys.exit(1)
     
     result = create_eventstream(
-        fabric_client=fabric_client,
+        workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         eventstream_name=args.eventstream_name
     )
