@@ -55,7 +55,9 @@ If you'd like to customize the solution accelerator, here are some common areas 
 
 ### Key features
 <details>
-  <summary>Click to learn more about the key features this solution enables</summary>  - **Fabric Data Ingestion Program and Real Time Event Simulator** <br/>Two data simulators: (1) One-time batch data simulator to generate or re-generate up to 90 days or specific periods of historical sensor data, and load to Fabric EventHouse (2) real time telemetry data simulator to generate real time up to the moment events that are streamed into Azure Event Hub. For more details, please refer to [Fabric Data Ingestion Guide](./docs/FabricDataIngestion.md) and  [Event Simulator Guide](./docs/EventSimulatorGuide.md).
+  <summary>Click to learn more about the key features this solution enables</summary> 
+  
+  - **Fabric Data Ingestion Program and Real Time Event Simulator** <br/>Two data simulators: (1) One-time batch data simulator to generate or re-generate up to 90 days or specific periods of historical sensor data, and load to Fabric EventHouse (2) real time telemetry data simulator to generate real time up to the moment events that are streamed into Azure Event Hub. For more details, please refer to [Fabric Data Ingestion Guide](./docs/FabricDataIngestion.md) and  [Event Simulator Guide](./docs/EventSimulatorGuide.md).
 
   - **Real Time Intelligence Operations Dashboard** <br/>Real-Time Intelligence Operations Dashboard provides overview on how manufacturing assets are performing, and showing individual sensor data trends such as Speed, Vibration, Temperature, Humidity, and Defect Probability. For details, please refer to [Real Time Intelligence Dashboard Guide](./docs/RealTimeIntelligenceDashboardGuide.md).
 
