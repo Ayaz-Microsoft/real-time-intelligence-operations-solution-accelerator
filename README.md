@@ -179,15 +179,17 @@ Use cases can be summarized as below:
 <details>
   <summary>Click to learn more about what value this solution provides</summary>
 
-  - **The solution provides multiple business functions with a simple architecture ** <br/>The deployed solution provides real time telemetry data monitoring, analysis, summarization, graphical reports, anomaly detection and notifications with a quick to deploy, secure, and simple architecture. 
+  -  **The solution provides multiple business functions with a simple architecture** <br/>
+  The deployed solution provides real time telemetry data monitoring, analysis, summarization, graphical reports, anomaly detection and notifications with a quick to deploy, secure, and simple architecture. 
 
-  - **A Fabric Data Agent getting quick business intelligence without programming effort.  ** <br/>The Fabric Data Agent can be quickly configured with instructions delivered in this solution accelerator, providing quick and accurate insights from data effortlessly. No programming skills are necessary. 
+  - **A Fabric Data Agent getting quick business intelligence without programming effort.** <br/>
+  The Fabric Data Agent can be quickly configured with instructions delivered in this solution accelerator, providing quick and accurate insights from data effortlessly. No programming skills are necessary. 
 
-  - **Real Time Intelligence for Operations Dashboard **<br/>
-
+  - **Real Time Intelligence for Operations Dashboard**<br/>
     The deployed solution accelerator provides a working architecture with best practices, security, components integration, and real-time intelligence for operations dashboard. 
 
-  - **Configurable Activator providing anomaly detection and notifications** <br/>The deployed and configurable Activator provides real time anomaly detection and alert notifications out of the box. The rules are easily configurable. 
+  - **Configurable Activator providing anomaly detection and notifications** <br/>
+  The deployed and configurable Activator provides real time anomaly detection and alert notifications out of the box. The rules are easily configurable. 
 
   - **Reusable and updatable real time event simulator and batch data update program** <br/>
 
