@@ -28,22 +28,8 @@ env:
   AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
   AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
   AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-  AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
   AZURE_ENV_NAME_DEV: ${{ vars.AZURE_ENV_NAME }}
-  AZURE_RESOURCE_GROUP_NAME_DEV: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
-  AZURE_FABRIC_WORKSPACE_NAME_DEV: "Real-Time Intelligence for Operations - Dev"
-  
-  # Fabric configuration variables
-  FABRIC_ACTIVATOR_ALERTS_EMAIL: "alerts@contoso.com"
-  FABRIC_WORKSPACE_ADMINISTRATORS: ""  # Comma-separated list of workspace administrator identities (UPNs or GUIDs)
-  
-  # Custom resource names (can be overridden by changing these values)
-  FABRIC_EVENTHOUSE_NAME: ""  # If empty, will use default: rti_eventhouse_{suffix}
-  FABRIC_EVENTHOUSE_DATABASE_NAME: ""  # If empty, will use default: rti_kqldb_{suffix}
-  FABRIC_EVENT_HUB_CONNECTION_NAME: ""  # If empty, will use default: rti_eventhub_connection_{suffix}
-  FABRIC_RTIDASHBOARD_NAME: ""  # If empty, will use default: rti_dashboard_{suffix}
-  FABRIC_EVENTSTREAM_NAME: ""  # If empty, will use default: rti_eventstream_{suffix}
-  FABRIC_ACTIVATOR_NAME: ""  # If empty, will use default: rti_activator_{suffix}
+  AZURE_RESOURCE_GROUP_NAME_DEV: 'rg-${{ vars.AZURE_ENV_NAME }}'
 
 jobs:
   build:
@@ -81,11 +67,10 @@ jobs:
         run: |
           echo "Validating Bicep template..."
           az deployment group validate \
-            --resource-group rg-${{ env.AZURE_ENV_NAME_DEV }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP_NAME_DEV }} \
             --template-file infra/main.json \
             --parameters infra/main.parameters.json \
-            --parameters solutionName=${{ env.AZURE_ENV_NAME_DEV }} \
-            --parameters location=${{ env.AZURE_LOCATION }} || true
+            --parameters solutionName=${{ env.AZURE_ENV_NAME_DEV }}
           echo "✅ Bicep template validation completed"
 
   deploy-dev:
@@ -135,30 +120,13 @@ jobs:
         working-directory: infra/scripts/utils
         env:
           # Required environment variables from Bicep outputs
-          AZURE_ENV_NAME: ${{ env.AZURE_ENV_NAME_DEV }}
           SOLUTION_SUFFIX: ${{ steps.bicep-deploy.outputs.SOLUTION_SUFFIX }}
-          AZURE_SUBSCRIPTION_ID: ${{ env.AZURE_SUBSCRIPTION_ID }}
-          AZURE_RESOURCE_GROUP: ${{ env.AZURE_RESOURCE_GROUP_NAME_DEV }}
           AZURE_FABRIC_CAPACITY_NAME: ${{ steps.bicep-deploy.outputs.AZURE_FABRIC_CAPACITY_NAME }}
           AZURE_EVENT_HUB_NAME: ${{ steps.bicep-deploy.outputs.AZURE_EVENT_HUB_NAME }}
           AZURE_EVENT_HUB_NAMESPACE_NAME: ${{ steps.bicep-deploy.outputs.AZURE_EVENT_HUB_NAMESPACE_NAME }}
           
-          # Optional environment variables (use default values if not provided)
-          AZURE_EVENT_HUB_AUTHORIZATION_RULE_NAME: ${{ steps.bicep-deploy.outputs.AZURE_EVENT_HUB_AUTHORIZATION_RULE_NAME || 'RootManageSharedAccessKey' }}
-          FABRIC_WORKSPACE_NAME: ${{ env.AZURE_FABRIC_WORKSPACE_NAME_DEV }}
-          FABRIC_WORKSPACE_ADMINISTRATORS: ${{ env.FABRIC_WORKSPACE_ADMINISTRATORS }}
-          FABRIC_ACTIVATOR_ALERTS_EMAIL: ${{ env.FABRIC_ACTIVATOR_ALERTS_EMAIL }}
-          
-          # Fabric admin members for workspace configuration
-          AZURE_FABRIC_ADMIN_MEMBERS: ${{ steps.bicep-deploy.outputs.AZURE_FABRIC_ADMIN_MEMBERS }}
-          
-          # Custom resource names (YAML variables - modify in env section above)
-          FABRIC_EVENTHOUSE_NAME: ${{ env.FABRIC_EVENTHOUSE_NAME }}
-          FABRIC_EVENTHOUSE_DATABASE_NAME: ${{ env.FABRIC_EVENTHOUSE_DATABASE_NAME }}
-          FABRIC_EVENT_HUB_CONNECTION_NAME: ${{ env.FABRIC_EVENT_HUB_CONNECTION_NAME }}
-          FABRIC_RTIDASHBOARD_NAME: ${{ env.FABRIC_RTIDASHBOARD_NAME }}
-          FABRIC_EVENTSTREAM_NAME: ${{ env.FABRIC_EVENTSTREAM_NAME }}
-          FABRIC_ACTIVATOR_NAME: ${{ env.FABRIC_ACTIVATOR_NAME }}
+          # Optional environment variables
+          FABRIC_WORKSPACE_ADMINISTRATORS: ${{ vars.FABRIC_WORKSPACE_ADMINISTRATORS }}
         run: |
           echo "Running RTI fabric provisioning script..."
           echo "Environment configuration:"
