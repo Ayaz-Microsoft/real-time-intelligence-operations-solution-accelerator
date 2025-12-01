@@ -90,7 +90,6 @@ module eventHubNamespace 'br/public:avm/res/event-hub/namespace:0.13.0' = {
       {
         roleDefinitionIdOrName: 'Azure Event Hubs Data Sender'
         principalId: userObjectId
-        principalType: 'User'
       }
     ]
     enableTelemetry: enableTelemetry
