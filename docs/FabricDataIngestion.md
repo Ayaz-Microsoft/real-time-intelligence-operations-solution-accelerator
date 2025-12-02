@@ -25,6 +25,7 @@ az login
 ```
 
 ```bash
+cd infra/scripts/fabric
 python fabric_data_ingester.py --cluster-uri <CLUSTER_URI> --database <DATABASE_NAME> [OPTIONS]
 ```
 
