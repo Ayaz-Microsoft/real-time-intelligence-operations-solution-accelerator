@@ -6,12 +6,12 @@ Please review the Access Requirements Section to ensure you have proper access f
 
 ## Access Requirements 
 
-If you deployed the solution accelerator via AZD following the [Deployment Guide](./DeploymentGuide.md), you have already established the required access to the solution, and **you can skip this section**. 
+If you deployed the solution accelerator via AZD following the [Deployment Guide](./DeploymentGuide.md), you have already established the required access to the solution, and **you can skip this Access Requirements section**. 
 
 If you are using a demonstration environment already set up by someone else, you will need below accesses: 
 
-1. You will need to be added as a contributor/viewer of the Fabric workspace. If you are a viewer, you will not be able to update any resources such as [Real-Time Intelligence Operations Dashboard](./RealTimeIntelligenceDashboardGuide.md) or [Activator](./ActivatorGuide.md). If you are a contributor, you will be able to update all the resources in Fabric workspace. **Recommend role: Viewer**. 
-2. You will need to be able to send simulated events to the Azure Event Hub deployed with the solution. The owner of the Event Hub or your Azure Admin can add you to the role of Azure Event Hubs Data Sender. Below diagram illustrates the key steps. 
+1. You will need to be added as a contributor of the Fabric workspace. If you are a viewer, you will not be able to update any resources such as [Real-Time Intelligence Operations Dashboard](./RealTimeIntelligenceDashboardGuide.md) or [Activator](./ActivatorGuide.md). Recommend role: **contributor**. 
+2. You will need to be able to send simulated events to the Azure Event Hub deployed with the solution. The owner of the Event Hub or your Azure Admin can add you to the role of **Azure Event Hubs Data Sender**. Below diagram illustrates the key steps. 
 
 ![Event Hubs Data Sender Role](../docs/images/deployment/eventhubs-data-sender-role.png)
 
