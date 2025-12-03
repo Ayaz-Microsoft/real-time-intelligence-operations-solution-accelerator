@@ -2,7 +2,7 @@
 
 Deploy the **Real-Time Intelligence Data Platform** solution accelerator using Azure Developer CLI - get a complete real-time analytics platform with Event Hub, Fabric Eventhouse, and KQL dashboards in minutes.
 
-## 🚀 Quick Start
+## Quick Start
 
 **One-command deployment** - Deploy everything with Azure Developer CLI ([prerequisites required](#prerequisites)). See also other available [deployment options](#deployment-options):
 
@@ -70,8 +70,9 @@ Before starting, ensure your deployment identity has the following requirements.
 - [ ] **`Microsoft.EventHub` Resource Provider Access**: Verify your Azure Subscription has Event Hub resource provider enabled
 
 ### 🔗 API Permissions
-- [ ] **Fabric REST API - Workspace Management**: Access to create and manage Fabric workspaces
-- [ ] **Fabric REST API - Item Creation**: Access to create Eventhouses, KQL databases, and dashboards
+- [ ] **Service principals and managed identities support on Fabric REST API**: To use service principals and managed identities with Fabric REST APIs (GitHub actions require it), [enable the `Service principals can use Fabric` APIs tenant setting](https://learn.microsoft.com/rest/api/fabric/articles/identity-support)
+- [ ] **Fabric REST API - Workspace Management**: Access to create and manage Fabric workspaces ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
+- [ ] **Fabric REST API - Item Creation**: Access to create Eventhouses, KQL databases, and dashboards ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
 - [ ] **Azure Event Hubs API**: Access to create and manage Event Hub resources
 
 ### 💻 Software Requirements
@@ -216,21 +217,44 @@ The solution includes comprehensive sample data for real-time analytics scenario
 
 Choose your deployment environment based on your workflow and requirements. All options use the same [Deploy with AZD](#deploy-with-azd) commands with environment-specific setup.
 
-| Environment | Best For | Setup Required | Notes |
-|-------------|----------|----------------|-------|
-| **[Local Machine](#local-machine)** | Full development control | Install [software requirements](#software-requirements) | Most flexible, requires local setup |
-| **[Azure Cloud Shell](#azure-cloud-shell)** | Zero setup | Just a web browser | Pre-configured tools, session timeouts |
-| **[GitHub Codespaces](#github-codespaces)** | Team consistency | GitHub account | Cloud development environment |
-| **[Dev Container](#vs-code-dev-container)** | Standardized tooling | Docker Desktop + VS Code | Containerized consistency |
+| Environment | Setup Required | Notes |
+|-------------|----------------|-------|
+| **[Local Machine](#local-machine)** | Install [software requirements](#software-requirements) | Most flexible, requires local setup |
+| **[Visual Studio Code Dev Container](#visual-studio-code-dev-container)** | Docker Desktop + VS Code | Containerized consistency |
+| **[GitHub Codespaces](#github-codespaces)** | GitHub account | Cloud development environment |
+| **[Azure Cloud Shell](#azure-cloud-shell)** | Web browser | Pre-configured tools, session timeouts |
+| **[GitHub Actions](#github-actions)** | Azure service principal | Federated identity, automated deployment |
 
 ### Local Machine
+
 Deploy with full control over your development environment.
 
-**Setup requirements**: Install the [software requirements](#software-requirements)
+**Setup**: Install the [software requirements](#software-requirements)
 
-**Deployment**: Use the standard [Deploy with AZD](#deploy-with-azd) commands
+**Deployment**: Follow the [quick start steps](#quick-start) commands
+
+### Visual Studio Code Dev Container
+Deploy from a containerized environment for team consistency.
+
+**Setup**: 
+1. Install Visual Studio Code, [Docker Desktop](https://www.docker.com/products/docker-desktop) and [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+2. Clone repository and open in VS Code
+3. Reopen in container when prompted
+
+**Deployment**: All tools pre-installed - follow the [quick start steps](#quick-start) commands
+
+### GitHub Codespaces  
+
+Deploy from a cloud development environment with pre-configured tools.
+
+**Setup**: 
+1. Go to the repository
+2. Click **Code** → **Codespaces** → **Create codespace on main**
+
+**Deployment**: All tools pre-installed - follow the [quick start steps](#quick-start) commands
 
 ### Azure Cloud Shell
+
 Deploy from Azure's browser-based terminal with zero local installation.
 
 **Setup**: Open [Azure Cloud Shell](https://shell.azure.com) and install Azure Developer CLI:
@@ -238,35 +262,29 @@ Deploy from Azure's browser-based terminal with zero local installation.
 curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
 ```
 
-**Deployment**: Run the [Deploy with AZD](#deploy-with-azd) commands (Azure CLI pre-authenticated)
+**Deployment**: Follow the [quick start steps](#quick-start) commands
 
-### GitHub Codespaces  
-Deploy from a cloud development environment with pre-configured tools.
+### GitHub Actions
 
-**Setup**: 
-1. Go to the repository
-2. Click **Code** → **Codespaces** → **Create codespace**
+Deploy using automated CI/CD pipeline with GitHub Actions and Azure federated identity.
 
-**Deployment**: Install azd and run deployment commands with device authentication:
-```bash
-# Install azd if needed
-curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
+**Setup**:
+1. Fork the repository to your GitHub account
+2. Configure [Azure service principal with federated identity credentials](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect) for GitHub Actions (recommened)
+3. Set repository variables in GitHub:
+   - `AZURE_CLIENT_ID`: Service principal client ID
+   - `AZURE_TENANT_ID`: Azure tenant ID  
+   - `AZURE_SUBSCRIPTION_ID`: Target subscription ID
+   - `AZURE_ENV_NAME`: Environment name for resource naming
+4. Set optinall repository  variables in GitHub if needed:
+   - `FABRIC_WORKSPACE_ADMINISTRATORS`: Comma-separated admin identities
+   - `FABRIC_ACTIVATOR_ALERTS_EMAIL`: Email for alert notifications
 
-# Use device code authentication  
-azd auth login --use-device-code
-
-# Continue with deployment commands
-```
-
-### VS Code Dev Container
-Deploy from a containerized environment for team consistency.
-
-**Setup**: 
-1. Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-2. Clone repository and open in VS Code
-3. Reopen in container when prompted
-
-**Deployment**: All tools pre-installed - run [Deploy with AZD](#deploy-with-azd) commands directly
+**Deployment**: 
+1. Navigate to **Actions** tab in your GitHub repository
+2. Select **CI/CD Azure - Real-Time Intelligence Operations** workflow
+3. Click **Run workflow** to trigger deployment
+4. Monitor deployment progress and view summary with Azure Portal links
 
 ---
 
@@ -359,8 +377,9 @@ The `azd down` command orchestrates a complete environment cleanup process that:
 
 1. **Removes Fabric Workspace Components**: Executes [`delete_fabric_rti.py`](../infra/scripts/fabric/delete_fabric_rti.py) via `predown` hook to safely delete workspace connections and components
 2. **Deletes Fabric Workspace**: Removes the Microsoft Fabric workspace and all associated items 
-3. **Deprovisions Azure Resources**: Removes all Azure infrastructure components including Event Hub and Fabric Capacity
-4. **Preserves Local Environment**: Keeps your local development environment and configurations intact
+3. **Deletes Fabric connection**: Removes the Microsoft Fabric Event Hub connection 
+4. **Deprovisions Azure Resources**: Removes all Azure infrastructure components including Event Hub and Fabric Capacity
+5. **Preserves Local Environment**: Keeps your local development environment and configurations intact
 
 **Complete cleanup commands:**
 
