@@ -80,11 +80,11 @@ events
 // 8) Presentation: columns & formatting
 // -------------------------
 | project
-    AssetName,
+    Asset = AssetName,
     ["Speed"]               = strcat(SpeedStatus, " ", round(Speed, 1), " RPM (Z:", round(SpeedZScore, 1), ")"),
     ["Temperature"]         = strcat(TempStatus, " ", round(Temperature, 1), "°F (Z:", round(TempZScore, 1), ")"),
     ["Vibration"]           = strcat(VibrationStatus, " ", round(Vibration, 3), " (Z:", round(VibZScore, 1), ")"),
     ["Defect Probability"]  = strcat(DefectStatus, " ", round(DefectProbability * 100, 1), "%"),
        ["Last Update"]         = format_datetime(Timestamp, "HH:mm:ss")
-| order by AssetName asc
+| order by Asset asc
 | render table

@@ -85,15 +85,15 @@ anomalyevents
     tempqualityindicator = case(tempqualitycorr >= 70, "🔴 Strong", tempqualitycorr >= 40, "🟡 Moderate", tempqualitycorr >= 20, "🟢 Weak", "⚪ none"),
     vibrationqualityindicator = case(vibrationqualitycorr >= 70, "🔴 Strong", vibrationqualitycorr >= 40, "🟡 Moderate", vibrationqualitycorr >= 20, "🟢 Weak", "⚪ none")
 | project
-    ["asset"] = assetname,
-    ["speed→temp"] = strcat(speedtempindicator, " ", speedtempcorr, "%"),
-    ["speed→vibration"] = strcat(speedvibrationindicator, " ", speedvibrationcorr, "%"),
-    ["speed→quality"] = strcat(speedqualityindicator, " ", speedqualitycorr, "%"),
-    ["temp→vibration"] = strcat(tempvibrationindicator, " ", tempvibrationcorr, "%"),
-    ["temp→quality"] = strcat(tempqualityindicator, " ", tempqualitycorr, "%"),
-    ["vibration→quality"] = strcat(vibrationqualityindicator, " ", vibrationqualitycorr, "%"),
-    ["total anomalies"] = speedanomalies + tempanomalies + vibrationanomalies + qualityanomalies
-| order by ["total anomalies"] desc
+    ["Asset"] = assetname,
+    ["Speed→Temp"] = strcat(speedtempindicator, " ", speedtempcorr, "%"),
+    ["Speed→Vibration"] = strcat(speedvibrationindicator, " ", speedvibrationcorr, "%"),
+    ["Speed→Quality"] = strcat(speedqualityindicator, " ", speedqualitycorr, "%"),
+    ["Temp→Vibration"] = strcat(tempvibrationindicator, " ", tempvibrationcorr, "%"),
+    ["Temp→Quality"] = strcat(tempqualityindicator, " ", tempqualitycorr, "%"),
+    ["Vibration→Quality"] = strcat(vibrationqualityindicator, " ", vibrationqualitycorr, "%"),
+    ["Total Anomalies"] = speedanomalies + tempanomalies + vibrationanomalies + qualityanomalies
+| order by ["Total Anomalies"] desc
 | render table
     with (
         title = "🔗 anomaly correlation matrix - when one metric has anomaly, % chance others do too"
