@@ -70,7 +70,7 @@ Before starting, ensure your deployment identity has the following requirements.
 - [ ] **`Microsoft.EventHub` Resource Provider Access**: Verify your Azure Subscription has Event Hub resource provider enabled
 
 ### 🔗 API Permissions
-- [ ] **Service principals and managed identities support on Fabric REST API**: To use service principals and managed identities with Fabric REST APIs (GitHub actions require it), [enable the `Service principals can use Fabric` APIs tenant setting](https://learn.microsoft.com/rest/api/fabric/articles/identity-support)
+- [ ] **Service principals and managed identities support on Fabric REST API**: To use service principals and managed identities with Fabric REST APIs (GitHub actions require it), [enable the `Service principals can use Fabric` APIs tenant setting](https://learn.microsoft.com/rest/api/fabric/articles/identity-support). You must be a [Microsoft 365 administrator](https://learn.microsoft.com/microsoft-365/admin/add-users/assign-admin-roles) to enable this setting
 - [ ] **Fabric REST API - Workspace Management**: Access to create and manage Fabric workspaces ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
 - [ ] **Fabric REST API - Item Creation**: Access to create Eventhouses, KQL databases, and dashboards ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
 - [ ] **Azure Event Hubs API**: Access to create and manage Event Hub resources
@@ -270,7 +270,7 @@ Deploy using automated CI/CD pipeline with GitHub Actions and Azure federated id
 
 **Setup**:
 1. Fork the repository to your GitHub account
-2. Configure [Azure service principal with federated identity credentials](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect) for GitHub Actions (recommened)
+2. Configure [Azure service principal with federated identity credentials](https://learn.microsoft.com/azure/developer/github/connect-from-azure-openid-connect) for GitHub Actions (recommened)
 3. Set repository variables in GitHub:
    - `AZURE_CLIENT_ID`: Service principal client ID
    - `AZURE_TENANT_ID`: Azure tenant ID  

@@ -58,6 +58,7 @@ sys.path.append(os.path.dirname(__file__))
 from fabric_auth import authenticate, authenticate_workspace
 from fabric_workspace import setup_workspace
 from fabric_workspace_admins import setup_workspace_administrators
+from fabric_api import FabricApiError
 from fabric_eventhouse import setup_eventhouse  
 from fabric_database import setup_fabric_database
 from fabric_data_ingester import load_data_to_fabric
@@ -122,17 +123,40 @@ def main():
     # Step 1: Setup workspace
     print_step(1, 11, "Setting up Fabric workspace and capacity assignment", capacity_name=capacity_name, workspace_name=workspace_name)
     try:
-        workspace_result = setup_workspace(
+        workspace_id = setup_workspace(
             fabric_client=fabric_client,
             capacity_name=capacity_name,
             workspace_name=workspace_name
         )
-        if workspace_result is None:
+        if workspace_id is None:
             print_steps_summary(solution_name, solution_suffix, executed_steps, ["setup_workspace"])
             sys.exit(1)
         print(f"✅ Successfully completed: setup_workspace")
         executed_steps.append("setup_workspace")
-        workspace_id = workspace_result.get('id')
+    except FabricApiError as e:
+        if e.status_code == 401:
+            print(f"\n⚠️  WARNING: Authentication failed (401 Unauthorized)")
+            print(f"\n📋 AUTHENTICATION ISSUE DETECTED:")
+            print(f"   The current user does not have sufficient permissions to create workspaces")
+            print(f"   or assign capacities in Microsoft Fabric.")
+            print(f"\n🔧 REQUIRED PERMISSIONS:")
+            print(f"   • Enable the 'Service principals can use Fabric APIs' tenant setting.")
+            print(f"     You must be a Microsoft 365 administrator to enable this setting.")
+            print(f"     (https://learn.microsoft.com/rest/api/fabric/articles/identity-support")
+            print(f"   • Fabric REST API - Workspace Management: Access to create and manage")
+            print(f"     Fabric workspaces (see scopes: https://learn.microsoft.com/rest/api/fabric/articles/scopes)")
+            print(f"   • Fabric REST API - Item Creation: Access to create Eventhouses, KQL")
+            print(f"     databases, and dashboards (see scopes: https://learn.microsoft.com/rest/api/fabric/articles/scopes)")
+            print(f"\n💡 NEXT STEPS:")
+            print(f"   1. Contact your Fabric Administrator to grant the necessary permissions")
+            print(f"   2. Ensure you're logged in with the correct account (az login)")
+            print(f"\n☑️ Exiting gracefully due to insufficient permissions.")
+            print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+            sys.exit(0)  # Exit gracefully for auth issues
+        else:
+            print(f"❌ FabricApiError while executing setup_workspace: ({e.status_code}) {e}")
+            print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+            sys.exit(1)
     except Exception as e:
         print(f"❌ Exception while executing setup_workspace: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])

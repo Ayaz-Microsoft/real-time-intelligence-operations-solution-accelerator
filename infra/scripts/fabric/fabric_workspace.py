@@ -19,7 +19,7 @@ import argparse
 import sys
 from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
 
-def setup_workspace(fabric_client: FabricApiClient, capacity_name: str, workspace_name: str) -> object:
+def setup_workspace(fabric_client: FabricApiClient, capacity_name: str, workspace_name: str) -> str:
     """
     Create a workspace (if it doesn't exist) and assign it to the specified capacity.
     
@@ -29,83 +29,49 @@ def setup_workspace(fabric_client: FabricApiClient, capacity_name: str, workspac
         workspace_name: Name of the workspace to create
         
     Returns:
-        True if successful, False otherwise
+        str: Workspace ID if successful, or None if failed
     """
-    try:
-        print(f"🔍 Searching for capacity: '{capacity_name}'")
-
-        capacity = fabric_client.get_capacity(capacity_name)
-        if not capacity:
-            print(f"❌ Capacity '{capacity_name}' not found. Exiting.")
-            return None
-
-        capacity_id = capacity['id']
-        print(f"✅ Capacity found: ID = {capacity_id}, Name = {capacity['displayName']}")
-
-        existing_workspace = fabric_client.get_workspace(workspace_name)
-        
-        if existing_workspace:
-            workspace_id = existing_workspace['id']
-            print(f"ℹ️  Using existing workspace: {workspace_name}")
-        else:
-            print(f"📁 Creating new workspace: '{workspace_name}'")
-            try:
-                workspace_id = fabric_client.create_workspace(name=workspace_name)
-                print(f"✅ Successfully created workspace: {workspace_name} (ID: {workspace_id})")
-            except FabricApiError as e:
-                if e.status_code == 409:
-                    print(f"ℹ️ Workspace '{workspace_name}' already exists")
-                    workspace_id = fabric_client.get_workspace(workspace_name)['id']
-                else:
-                    print(f"❌ Failed to create workspace: {e}")
-                    return None
-        
-        workspace_setup_response = {"id": workspace_id }
-
-        print(f"🔧 Initializing workspace-specific client...")
-        workspace_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
-        
-        print(f"⚡ Assigning workspace '{workspace_name}' to capacity '{capacity_name}'...")
+    # Step 1: Get or create workspace
+    existing_workspace = fabric_client.get_workspace(workspace_name)
+    
+    if existing_workspace:
+        workspace_id = existing_workspace['id']
+        print(f"ℹ️  Using existing workspace: {workspace_name} ({workspace_id})")
+    else:
+        print(f"📁 Creating new workspace: '{workspace_name}'")
         try:
-            workspace_client.assign_to_capacity(capacity_id)
-            print(f"✅ Successfully assigned workspace to capacity!")
+            workspace_id = fabric_client.create_workspace(name=workspace_name)
+            print(f"✅ Successfully created workspace: {workspace_name} ({workspace_id})")
         except FabricApiError as e:
-            print(f"❌ FabricApiError ({e.status_code}): {e}")
-            return None
-        
-        print(f"🔍 Verifying workspace assignment...")
-        try:
-            workspace_info = workspace_client.get_workspace_info()
-            assigned_capacity_id = workspace_info.get('capacityId')
-            
-            if assigned_capacity_id == capacity_id:
-                print(f"✅ Verification successful: Workspace is assigned to capacity {capacity_name}")
-                
-                print(f"\n📊 Workspace Summary:")
-                print(f"   Name: {workspace_info.get('displayName', 'Unknown')}")
-                print(f"   ID: {workspace_info.get('id', 'Unknown')}")
-                print(f"   Capacity: {capacity['displayName']} ({capacity_id})")
-                print(f"   Type: {workspace_info.get('type', 'Unknown')}")
-                
-                items = workspace_client.get_items()
-                print(f"   Items: {len(items)} total")
-                
-                return workspace_setup_response
+            if e.status_code == 409:
+                # Handle race condition where workspace was created between check and create
+                print(f"ℹ️ Workspace '{workspace_name}' already exists (created during operation)")
+                existing_workspace = fabric_client.get_workspace(workspace_name)
+                workspace_id = existing_workspace['id']
             else:
-                print(f"⚠️  Warning: Workspace shows different capacity assignment: {assigned_capacity_id}")
-                return None
-                  
-        except FabricApiError as e:
-            print(f"⚠️  Could not verify assignment: {e}")
-            print(f"✅ Workspace creation and assignment completed (verification failed)")
-            return workspace_setup_response
-        
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+                print(f"❌ Failed to create workspace: {e}")
+                raise
+
+    # Step 2: Find the capacity
+    print(f"🔍 Searching for capacity: '{capacity_name}'")
+    capacity = fabric_client.get_capacity(capacity_name)
+    if not capacity:
+        print(f"❌ Capacity '{capacity_name}' not found.")
         return None
 
+    capacity_id = capacity['id']
+    print(f"✅ Capacity found: {capacity['displayName']} ({capacity_id})")
+
+    # Step 3: Assign workspace to capacity
+    print(f"⚡ Assigning workspace to capacity '{capacity_name}'...")
+    workspace_client = FabricWorkspaceApiClient(workspace_id=workspace_id)
+    workspace_client.assign_to_capacity(capacity_id)
+    print(f"✅ Successfully assigned workspace to capacity")
+    
+    return workspace_id
+
 def main():
-    """Main function to handle command line arguments and execute the workspace creation."""
+    """Main function to handle command line arguments and execute workspace setup."""
     parser = argparse.ArgumentParser(
         description="Create a Fabric workspace and assign it to a capacity",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -139,7 +105,7 @@ Examples:
         workspace_name=args.workspace_name
     )
     
-    print(f"\n✅ Workspace ID: {result.get('id') if result else 'Failed'}")
+    print(f"\n✅ Workspace ID: {result if result else 'Failed'}")
     print(f"✅ Workspace Name: {args.workspace_name}")
 
 
