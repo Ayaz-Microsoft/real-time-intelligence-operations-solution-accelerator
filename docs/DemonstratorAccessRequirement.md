@@ -4,7 +4,7 @@ To effectively demonstrate the Real-Time Intelligence Operations solution using 
 
 ## 1. Fabric Workspace Contributor Role
 
-You must have atleast **contributor** level access to the Fabric workspace to modify resources, including:
+You must have at least **contributor** level access to the Fabric workspace to modify resources, including:
 
 - [Real-Time Intelligence Operations Dashboard](./RealTimeIntelligenceDashboardGuide.md)
 - [Activator](./ActivatorGuide.md)
