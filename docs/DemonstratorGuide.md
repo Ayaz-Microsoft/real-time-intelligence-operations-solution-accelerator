@@ -1,52 +1,110 @@
-# Demonstrator's Guide 
+# Demonstrator's Guide
 
-This page provides guidance on how to set up a demonstration environment for the solution and how to start the data generation simulators. It also describes the security setup for the person to demonstrate the solution.
+This guide provides instructions for demonstrating the Real-Time Intelligence Operations solution. Follow the steps in order to effectively showcase the system's capabilities.
 
-Please review the Access Requirements Section to ensure you have proper access first. 
+## Access Prerequisites
 
-## Access Requirements 
+Before beginning the demonstration, verify your access permissions:
 
-If you deployed the solution accelerator via AZD following the [Deployment Guide](./DeploymentGuide.md), you have already established the required access to the solution, and **you can skip this Access Requirements section**, and start at [Step 1. Refresh Historical Data](#step-1-refresh-historical-data).
+- **If deployed using AZD:** You have the required access and may proceed directly to the demonstration steps.
+- **If using a pre-configured environment:** Review the [Demonstrator Access Requirements](./DemonstratorAccessRequirement.md) guide to verify your access level.
 
-If you are using a demonstration environment already set up by someone else, you will need below accesses: 
+---
 
-1. You will need to be added as a contributor of the Fabric workspace. If you are a viewer, you will not be able to update any resources such as [Real-Time Intelligence Operations Dashboard](./RealTimeIntelligenceDashboardGuide.md) or [Activator](./ActivatorGuide.md). Recommend role: **contributor**. 
-2. You will need to be able to send simulated events to the Azure Event Hub deployed with the solution. The owner of the Event Hub or your Azure Admin can add you to the role of **Azure Event Hubs Data Sender**. Below diagram illustrates the key steps. 
+## Step 1. Demonstrate the Fabric Data Agent
 
-![Event Hubs Data Sender Role](../docs/images/deployment/eventhubs-data-sender-role.png)
+The Fabric Data Agent is an AI-powered assistant that provides natural language responses to business questions about your data.
 
-## Step 1. Refresh Historical Data 
+**Instructions:**
 
-When the solution accelerator was deployed, it automatically creates 90 days of telemetry data and stores the data in the EventHouse database. By the time you demonstrate this solution, the data needs to be refreshed. You will need to follow instructions in [Fabric Data Ingestion Guide](./FabricDataIngestion.md) and use the options `--refresh-dates` and `--overwrite` to get a fresh and up to date dataset. 
+1. Refer to the [Fabric Data Agent Guide](./FabricDataAgentGuide.md) for detailed setup instructions
+2. After deployment (or if already deployed), locate the Data Agent in your Fabric workspace
+3. Submit questions about the data using the [provided sample questions](./fabric_data_agent/user_sample_test_questions.md) or your own queries
+4. Observe how the agent delivers instant responses in natural language
 
-## Step 2. Start Real Time Event Simulator 
+**What you'll see:**
 
-You will need to start the Real-Time Event Simulator by following the instructions in [Event Simulator Guide](./EventSimulatorGuide.md) to start the simulator. We recommend you start with normal mode and then switch to anomaly mode to illustrate how anomaly events can be observed and how the anomaly events can trigger alerts.
+![Fabric Data Agent UI](../docs/images/deployment/fabric_data_agent_ui.png)
 
-## Step 3. Demonstrate the Real-Time Intelligence Operations Dashboard 
+## Step 2. Refresh Historical Data
 
-Please follow the [Real-Time Intelligence Operations Dashboard Guide](./RealTimeIntelligenceDashboardGuide.md) to understand the concepts and business metrics. You will want to highlight the anomaly spikes as shown in below diagram. Suggest you select time range filter as last 2 days or last 24 hours depending on when you started the anomaly event simulation. 
+The system contains 90 days of sample data. To ensure the demonstration reflects current information, you must refresh the dataset.
+
+**Instructions:**
+
+1. Follow the [Fabric Data Ingestion Guide](./FabricDataIngestion.md) for detailed procedures
+2. Use the `--refresh-dates` and `--overwrite` options to update the data
+
+This process takes approximately a few minutes and ensures the demonstration displays current data.
+
+---
+
+## Step 3. Initialize the Event Simulator
+
+The Event Simulator generates realistic business events to demonstrate the system's real-time anomaly detection capabilities.
+
+**Instructions:**
+
+1. Refer to the [Event Simulator Guide](./EventSimulatorGuide.md) for detailed setup procedures
+2. Start the simulator in **Normal Mode** to demonstrate standard operational conditions
+3. Switch to **Anomaly Mode** to illustrate system detection and alert capabilities
+
+You may switch operating modes or restart the simulator at any time during the demonstration without interrupting the session.
+
+---
+
+## Step 4. Present the Real-Time Intelligence Dashboard
+
+The Real-Time Intelligence Operations Dashboard displays critical business metrics and provides real-time visibility into operational anomalies.
+
+**Instructions:**
+
+1. Refer to the [Dashboard Guide](./RealTimeIntelligenceDashboardGuide.md) for detailed information
+2. On Fabric workspace Real-Time Dashboard, identify **anomaly spikes** in the data visualization. These represent potential operational issues
+3. Configure the time filter to display "Last 24 Hours" or "Last 2 Days" corresponding to the simulator start time
+4. Highlight the dashboard's real-time update capability as events are processed
+
+**Example of anomaly spikes on the dashboard:**
 
 ![RTI Dashboard Anomaly Spikes](../docs/images/deployment/rti-dashboard-anomaly-spikes.png)
 
-## Step 4. Demonstrate the Activator Anomaly Alerts 
+---
 
-Please follow the [Activator Guide](./ActivatorGuide.md) to understand how the anomaly detection rules are set. You may need to reconfigure the rules to send alerts to an email account that you have access to. You can also reconfigure the rules to send anomaly alerts to a Microsoft Teams channel instead of an email account. 
+## Step 5. Demonstrate Alert Mechanisms with Activator
 
- If the simulator is in normal mode, you will rarely receive anomaly events as things should be running much smoother during normal mode. If the simulator is switched to 'anomaly' mode, you will get many alerts. The frequency of the simulated events can be adjusted with the simulator's command line options. This is well documented in the [Event Simulator Guide](./EventSimulatorGuide.md). You can stop and restart this event simulator at any time, or switch the operating mode while it is running. 
+The Activator component monitors real-time data streams and automatically triggers alerts when anomalies exceed defined thresholds, enabling proactive incident response.
+
+When anomalies are detected, the system automatically generates alerts, enabling teams to respond promptly to operational issues.
+
+**Instructions:**
+
+1. Review the [Activator Guide](./ActivatorGuide.md) to understand alert configuration and functionality
+2. Open Activator from the workspace
+3. Ensure alerts are configured to send to an accessible email address (configuration updates may be required)
+4. Optionally configure alerts to be sent to a Microsoft Teams channel for team visibility
+
+**Alert Behavior:**
+
+- **Normal Mode:** Minimal anomalies result in infrequent alerts
+- **Anomaly Mode:** Frequent anomalies trigger regular alert notifications
+
+Example email notification:
 
 ![Anomaly Alert](../docs/images/deployment/anomaly-email-alerts.png)
 
-When you open one of the emails, you will see something similar to below:
+When you open the email, it shows details like this:
 
 ![Activator Email Alert](../docs/images/deployment/activator-email-alert.png)
 
+---
 
+## Summary
 
-## Step 5. Demonstrate the Fabric Data Agent
+You have successfully demonstrated the following capabilities:
 
-Please follow the [Fabric Data Agent Guide](./FabricDataAgentGuide.md) to understand how the Fabric Data Agent is created and set up. If it is not already set up, you can follow the instructions to create and configure a new Fabric Data Agent in minutes. After that, you can ask any questions you'd like the agent to answer. For starters, you can use the [sample test questions](./fabric_data_agent/user_sample_test_questions.md). 
+1. **Intelligent Data Assistant:** Natural language query interface for business intelligence
+2. **Real-Time Dashboard:** Comprehensive visualization of key operational metrics
+3. **Automated Alerting:** Proactive notification system for anomaly detection
+4. **Operational Response:** Integrated system enabling rapid response to critical events
 
-In the Fabric workspace, find the Fabric Data Agent that is already set up. You will be able to chat with the agent right away. Below is the user interface you can expect: 
-
-![Fabric Data Agent UI](../docs/images/deployment/fabric_data_agent_ui.png)
+These components work in concert to provide organizations with real-time operational visibility and accelerated incident response capabilities.

@@ -1,387 +1,559 @@
-# Deployment Guide for Real-Time Intelligence (RTI) Operations 
+# Deployment Guide
 
-Deploy the **Real-Time Intelligence Data Platform** solution accelerator using Azure Developer CLI - get a complete real-time analytics platform with Event Hub, Fabric Eventhouse, and KQL dashboards in minutes.
+Deploy the **Real-Time Intelligence for Operations Solution Accelerator** using Azure Developer CLI to provision a complete real-time analytics platform. This automated deployment creates Azure Event Hub for data ingestion, Microsoft Fabric Eventhouse with KQL database for analytics, interactive dashboards for monitoring, and automated anomaly detection—all configured and ready to use in minutes.
 
-## Quick Start
+> 🆘 **Need Help?** If you encounter issues during deployment, check our [Known Issues and Troubleshooting](#known-issues-and-troubleshooting) section for solutions to common problems.
 
-**One-command deployment** - Deploy everything with Azure Developer CLI ([prerequisites required](#prerequisites)). See also other available [deployment options](#deployment-options):
+## Key Sections
 
-```bash
-# Clone and navigate to repository
-git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
-cd real-time-intelligence-operations-solution-accelerator
+| Section | Description |
+|---------|-------------|
+| [**Overview**](#overview) | Two-phase deployment architecture explained |
+| [**Prerequisites & Setup**](#step-1-prerequisites--setup) | Azure and Fabric requirements, software installation |
+| [**Deployment Environment**](#step-2-choose-your-deployment-environment) | Choose deployment method: Local, Cloud Shell, Codespaces, Dev Container, or GitHub Actions |
+| [**Configuration Settings**](#step-3-configure-deployment-settings---advanced-configuration) | Optional: Customize resource names and settings |
+| [**Deploy the Solution**](#step-4-deploy-the-solution) | Execute deployment with step-by-step instructions |
+| [**Post-Deployment Configuration**](#step-5-post-deployment-configuration) | Set up Data Agent, Simulator, Activator, and verify components |
+| [**Deployment Results**](#step-6-deployment-results) | Verify Azure and Fabric resources |
+| [**Clean Up**](#step-7-clean-up-optional) | Remove all deployed resources |
+| [**Known Issues and Troubleshooting**](#known-issues-and-troubleshooting) | Common problems and solutions |
+| [**Next Steps**](#next-steps) | Additional resources and guides |
+| [**Need Help?**](#need-help) | Support options |
 
-# Authenticate (required)
-azd auth login
-az login
+---
 
-# Recommended: set email to receive alerts
-azd env set FABRIC_ACTIVATOR_ALERTS_EMAIL "myteam@company.com"
+## Overview
 
-# Optional: Customize resource names
-azd env set FABRIC_WORKSPACE_NAME "My RTI Workspace"
-azd env set FABRIC_WORKSPACE_ADMINISTRATORS "user@company.com,12345678-1234-abcd-1234-123456789abc" # comma-separated
-azd env set FABRIC_EVENTHOUSE_NAME "my_custom_eventhouse"
-azd env set FABRIC_EVENTHOUSE_DATABASE_NAME "my_custom_kql_db"
-azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
-azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
-azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
-azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
+This guide walks you through deploying the Real-Time Intelligence Operations Solution Accelerator to both Azure and Microsoft Fabric. The deployment process takes approximately 10-15 minutes and provisions a complete real-time analytics platform with cloud infrastructure and analytics components.
 
-# Deploy everything
-azd up
+### Two-Phase Architecture
+
+The deployment uses a coordinated two-phase approach that is **idempotent** and **safe to re-run**, automatically detecting existing resources and only creating what's missing:
+
+```text
+
+PHASE 1: Infrastructure (Bicep)     PHASE 2: Fabric Setup (Python)
+├─ Fabric Capacity                  ├─ Workspace
+├─ Event Hub                        ├─ Eventhouse & KQL Database
+└─ Resource Group                   ├─ Eventstream & Connections
+                                    ├─ Real-Time Dashboard
+                                    ├─ Activator Rules
+                                    └─ Sample Data
 ```
 
-During deployment, you'll specify:
-- **Environment name** (e.g., "myrtisys"). This will be used to build the name of the deployed Azure resources.
-- **Azure subscription**.
-- **Azure resource group**.
+**Phase 1** provisions Azure infrastructure using Bicep templates with ARM idempotency:
 
-**What you get**: Complete real-time analytics platform with Event Hub, Fabric Eventhouse, KQL database, sample data, streaming capabilities, and automated alerting with Activator.
+- **Fabric Capacity** - Dedicated compute resources for Fabric workloads with auto-scaling capabilities
+- **Event Hub** - High-throughput streaming service for real-time data ingestion and event processing
+- **Resource Group** - Logical container organizing and managing all deployed Azure resources
 
-### Next Steps
-- **Check requirements first**: Review [Prerequisites](#prerequisites) for permissions and software needed
-- **Simulate real time data**: Follow [Start event simulation](#start-event-simulation) steps to run the tool
-- **See what's deployed**: Check [Deployment Results](#deployment-results) for detailed component overview and verification steps
-- **Understand the deployment logic**: Review [Deployment Overview](#deployment-overview) for technical details
-- **Check advanced customization**: Explore [Advanced Configuration Options](#advanced-configuration-options) for naming and settings
-- **See all available deployment options**: See [Deployment Options](#deployment-options) (Cloud Shell, Codespaces, etc.)
-- **Troubleshoot issues**: Review [Known Limitations](#known-limitations) for common problems and solutions
-- **Remove environment**: Use [Environment Cleanup](#environment-cleanup) to completely remove your deployment
+**Phase 2** manages Fabric components using Python scripts with intelligent resource detection:
 
----
+- **Workspace** - Collaborative environment hosting all Fabric artifacts and configurations
+- **Eventhouse & KQL Database** - Real-time analytics engine with high-performance query capabilities and pre-configured schema
+- **Eventstream & Connections** - Data pipeline orchestration connecting Event Hub to Eventhouse with transformation rules
+- **Real-Time Dashboard** - Interactive monitoring interface with live visualizations and drill-down analytics
+- **Activator Rules** - Automated anomaly detection system with configurable alert thresholds and notifications
+- **Sample Data** - Pre-loaded telemetry data for immediate testing and demonstration purposes
 
-## Prerequisites
-
-Before starting, ensure your deployment identity has the following requirements.
-
-> **📋 Deployment Identity Types**
-> 
-> The deployment can be executed using different identity types:
-> - **User Account**: Interactive deployment using your Azure AD credentials.
-> - **Service Principal**: Application identity for automated/CI-CD scenarios.
-> - **Managed Identity**: Azure-managed identity for secure automated deployments.
->
-> For more details, see [Fabric Identity Support](https://learn.microsoft.com/rest/api/fabric/articles/identity-support)
-
-### 🔐 Azure Permissions
-- [ ] **Resource Group Access**: Ensure your deployment identity has permissions on target Resource Group to deploy Bicep templates and create Azure resources using appropriate [Azure RBAC built-in roles](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles) (e.g. has [Contributor](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#contributor) or [Owner](https://learn.microsoft.com/azure/role-based-access-control/built-in-roles#owner))
-- [ ] **`Microsoft.Fabric` Resource Provider Access**: Verify your Azure Subscription has [Microsoft.Fabric resource provider](https://learn.microsoft.com/azure/azure-resource-manager/management/azure-services-resource-providers) enabled
-- [ ] **`Microsoft.EventHub` Resource Provider Access**: Verify your Azure Subscription has Event Hub resource provider enabled
-
-### 🔗 API Permissions
-- [ ] **Service principals and managed identities support on Fabric REST API**: To use service principals and managed identities with Fabric REST APIs (GitHub actions require it), [enable the `Service principals can use Fabric` APIs tenant setting](https://learn.microsoft.com/rest/api/fabric/articles/identity-support). You must be a [Microsoft 365 administrator](https://learn.microsoft.com/microsoft-365/admin/add-users/assign-admin-roles) to enable this setting
-- [ ] **Fabric REST API - Workspace Management**: Access to create and manage Fabric workspaces ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
-- [ ] **Fabric REST API - Item Creation**: Access to create Eventhouses, KQL databases, and dashboards ([see scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes))
-- [ ] **Azure Event Hubs API**: Access to create and manage Event Hub resources
-
-### 💻 Software Requirements
-- [ ] **Python**: Install version 3.9+ as runtime environment for deployment scripts from [Download Python](https://www.python.org/downloads/)
-- [ ] **Azure CLI**: Install latest version for Azure authentication and resource management from [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- [ ] **Azure Developer CLI**: Install latest version for simplified deployment orchestration from [Install Azure Developer CLI](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd)
+The entire process is orchestrated by Azure Developer CLI with comprehensive error handling and rollback capabilities.
 
 ---
 
-## Start Event Simulation
+## Step 1: Prerequisites & Setup
 
-Start a simulation of streaming events in real-time to the newly created environment:
+### 1.1 Azure Account Requirements
 
-- **Documentation**: Review the [Event Simulator Guide](EventSimulatorGuide.md) for detailed setup instructions
-- **Quick Start**: Use the simulator to generate sample telemetry and event data
-- **Anomaly Testing**: Trigger anomaly events to test real-time detection and automated alerting capabilities
+Ensure you have access to an [Azure subscription](https://azure.microsoft.com/free/) with the following permissions:
 
----
+| Permission | Level | Purpose |
+|-----------|-------|---------|
+| **Contributor** | Subscription/Resource Group | Deploy Bicep templates and create Azure resources |
+| **User Access Administrator** | Subscription/Resource Group | Configure role-based access control (RBAC) |
 
-## Deployment Overview
+**How to Check Your Permissions:**
 
-This solution accelerator uses a two-phase deployment approach that creates a complete real-time analytics platform with Event Hub streaming, Fabric Eventhouse, KQL dashboards, and automated alerting with Activator. The deployment is designed to be **idempotent** and **safe to re-run**, intelligently detecting existing resources and only creating what's missing.
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Search for "Subscriptions" in the top search bar
+3. Click on your target subscription
+4. Select **Access control (IAM)** from the left menu
+5. Look for your user account—you should see **Contributor** or **Owner** role assigned
 
-The deployment executes in two coordinated phases using Azure Developer CLI orchestration:
+### 1.2 Microsoft Fabric Requirements
 
-**Phase 1: Infrastructure Provisioning** - Azure Developer CLI executes [`main.bicep`](../infra/main.bicep) with parameters from [`main.parameters.json`](../infra/main.parameters.json) to create Azure resources using [ARM idempotency](https://learn.microsoft.com/azure/azure-resource-manager/templates/deployment-tutorial-local-template?tabs=azure-powershell#deploy-template):
-   - **Microsoft Fabric Capacity**: Dedicated compute resources with configured admin permissions (updates configuration if parameters change)
-   - **Azure Event Hub**: Real-time event ingestion service with namespace and authorization rules
-   - **Resource Group**: Container for all Azure resources with proper tagging
+Your organization must have the following setup:
 
-**Phase 2: Fabric Workspace Setup** - Azure Developer CLI runs [`Run-PythonScript.ps1`](../infra/scripts/utils/Run-PythonScript.ps1) orchestrator which manages Python environment setup and executes [`deploy_fabric_rti.py`](../infra/scripts/fabric/deploy_fabric_rti.py) to intelligently manage Fabric resources:
-   - **Workspace**: Detects existing workspace by name or creates new one, assigns to specified capacity
-   - **Eventhouse**: Creates real-time analytics database with KQL capabilities and auto-generated database
-   - **KQL Database**: Sets up tables and schema for event data with proper indexing
-   - **Sample Data**: Loads CSV files and generates manufacturing telemetry data for testing
-   - **Event Hub Connection**: Establishes secure connection between Event Hub and Eventhouse using SAS tokens
-   - **Real-Time Dashboard**: Creates KQL dashboard for monitoring and visualization
-   - **Eventstream**: Sets up data flow pipeline connecting Event Hub to Eventhouse
-   - **Activator**: Configures real-time alerting and notifications for anomaly detection
-   - **Administrators**: Adds new workspace administrators without removing existing ones
+| Requirement | Details |
+|-------------|---------|
+| **Fabric License** | [Microsoft Fabric](https://learn.microsoft.com/en-us/fabric/admin/fabric-switch) must be enabled in your organization |
+| **Fabric Capacity** | Dedicated capacity available for your deployments (or deployment will create one) |
+| **Workspace Creation** | Permissions to create new Fabric workspaces |
+| **REST API Access** | If using Service Principals or Managed Identities, [enable the tenant setting](https://learn.microsoft.com/rest/api/fabric/articles/identity-support) for "Service principals and managed identities support on Fabric REST API" |
 
-The deployment orchestration coordinates both phases through Azure Developer CLI hooks, passing Bicep outputs as environment variables to the Python scripts, and ensuring proper sequencing with comprehensive error handling and rollback capabilities.
+### 1.3 Deployment Identity
 
-**Environment Cleanup Process** - When running `azd down`, Azure Developer CLI executes [`delete_fabric_rti.py`](../infra/scripts/fabric/delete_fabric_rti.py) via a `predown` hook to safely remove Fabric workspace components before deprovisioning Azure infrastructure, ensuring a clean and complete cleanup process.
+Deployment identity determines how your deployment interacts with Azure and Microsoft Fabric resources. Choose one identity type for deployment:
 
----
+| Identity Type | Best For | Setup Required |
+|---------------|----------|-----------------|
+| **User Account** | Interactive development and testing | Your Azure AD credentials |
+| **Service Principal** | Automated deployments and CI/CD pipelines | [Federated identity credentials](https://learn.microsoft.com/azure/developer/github/connect-from-azure-openid-connect) and Fabric REST API permissions |
+| **Managed Identity** | Azure-native automation | Azure subscription access and Fabric REST API permissions |
 
-## Deployment Results
+[Learn more about Fabric Identity Support](https://learn.microsoft.com/rest/api/fabric/articles/identity-support)
 
-After successful deployment, you'll have a complete real-time operations platform set in Fabric and Azure, with all the elements listed below:
+### 1.4 Software Requirements
 
-### Azure Infrastructure
+**Note:** Skip this section if using GitHub Codespaces, VS Code Dev Container, or Azure Cloud Shell—all tools are pre-installed in these environments.
 
-| Resource | Purpose |
-|----------|---------|
-| **[Fabric Capacity](https://learn.microsoft.com/fabric/admin/capacity-settings?tabs=power-bi-premium)** | Dedicated compute for Fabric workloads |
-| **[Azure Event Hub](https://learn.microsoft.com/azure/event-hubs/)** | Real-time event ingestion service |
+Install the following tools on your local machine:
 
-![Screenshot of Azure portal showing the Azure resources deployed after the script execution](./images/deployment/deployment_overview_azure.png)
+| Tool | Version | Installation |
+|------|---------|--------------|
+| **Python** | 3.9 or later | [Download from python.org](https://www.python.org/downloads/) |
+| **Azure CLI** | Latest | [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **Azure Developer CLI (azd)** | Latest | [Install azd](https://learn.microsoft.com/azure/developer/azure-developer-cli/install-azd) |
+| **Git** | Latest | [Download from git-scm.com](https://git-scm.com/downloads) |
 
-### Fabric Components
+**Verify Installation:**
 
-#### Fabric Workspace
+```bash
+python --version
+az --version
+azd version
+git --version
+```
 
-Workspace created with the specified or default name: `Real-Time Intelligence for Operations - <your azd env name><suffix>`. The workspace is automatically assigned to the specified Fabric capacity and configured with proper permissions.
-
-![Screenshot of Fabric workspace showing the Fabric items deployed after the script execution](./images/deployment/deployment_overview_fabric_workspace.png)
-
-#### Eventhouse and KQL Database
-
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **Eventhouse** | Real-time analytics engine | Named `rti_eventhouse_<env-name><suffix>` with query service URI |
-| **KQL Database** | High-performance analytics database | Named `rti_kqldb_<env-name><suffix>` with configured tables and schema |
-| **Events Table** | Real-time event data storage | Primary table for streaming event ingestion with proper indexing |
-
-**Eventhouse**
-![Screenshot of Fabric eventhouse deployed after the script execution](./images/deployment/deployment_overview_fabric_eventhouse.png)
-
-<br/>
-
-![Screenshot of Fabric KQL database deployed after the script execution](./images/deployment/deployment_overview_fabric_kql_database.png)
-
-#### Sample Data
-
-The solution includes comprehensive sample data for real-time analytics scenarios:
-- **Asset telemetry data**: Equipment sensors, performance metrics, and operational data
-- **Event data**: Real-time operational events with timestamps and metadata
-- **Location data**: Asset locations and geographical information
-- **Historical data**: Pre-loaded datasets for testing and demonstration purposes
-
-#### Event Hub Connection
-
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **Connection** | Secure Event Hub to Eventhouse link | Named `rti_eventhub_connection_<env-name><suffix>` using SAS token authentication |
-
-![Screenshot of Fabric Eventhub connection deployed after the script execution](./images/deployment/deployment_overview_fabric_eventhub_connection.png)
-
-#### Real-Time Dashboard
-
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **KQL Dashboard** | Real-time monitoring and visualization | Named `rti_dashboard_<env-name><suffix>` with pre-configured charts and metrics |
-| **Data Source** | Connected to Eventhouse database | Automatically linked to KQL database for live data visualization |
-
-![Screenshot of Fabric Real-Time dashboard deployed after the script execution](./images/deployment/deployment_overview_fabric_real-time_dashboard.png)
-
-#### Activator (Real-Time Alerts)
-
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **Activator** | Real-time alerting and notifications | Named `rti_activator_<env-name><suffix>` for automated anomaly detection |
-| **Event Source** | Eventstream data monitoring | Monitors data flow from EventStream source |
-| **Alert Rules** | Automated notification triggers | Pre-configured rules: High Speed (>100), Low Speed (<28), High Vibration (>0.4), High Defect Probability (>0.02) |
-| **Email Notifications** | Real-time alert delivery | Configured email alerts with detailed asset information and contextual data |
-
-**Activator**
-
-![Screenshot of Fabric Activator deployed after the script execution](./images/deployment/deployment_overview_fabric_activator.png)
-
-<br/>
-
-**Rules**
-
-![Screenshot of Fabric Activator rules deployed after the script execution](./images/deployment/deployment_overview_fabric_activator_rules.png)
-
-#### Eventstream
-
-| Component | Purpose | Details |
-|-----------|---------|---------|
-| **Eventstream** | Data flow orchestration | Named `rti_eventstream_<env-name><suffix>` connecting Event Hub to Eventhouse |
-| **Source** | Event Hub input connector | EventStream source for real-time data ingestion from Azure Event Hub |
-| **Destination** | Eventhouse output connector | Connected to Eventhouse for streaming data into KQL database |
-| **Event Processing** | Real-time data processing | Processes telemetry data including AssetId, Speed, Vibration, Temperature, Humidity, and DefectProbability |
-
-![Screenshot of Fabric Eventstream deployed after the script execution](./images/deployment/deployment_overview_fabric_eventstream.png)
+📖 **Detailed Setup:** For complete Azure account configuration, see [Azure Account Setup Guide](./AzureAccountSetUp.md).
 
 ---
 
-## Deployment Options
+## Step 2: Choose Your Deployment Environment
 
-Choose your deployment environment based on your workflow and requirements. All options use the same [Deploy with AZD](#deploy-with-azd) commands with environment-specific setup.
+Select one of the following options to deploy the solution:
+
+### Environment Comparison
 
 | Environment | Setup Required | Notes |
 |-------------|----------------|-------|
-| **[Local Machine](#local-machine)** | Install [software requirements](#software-requirements) | Most flexible, requires local setup |
-| **[Visual Studio Code Dev Container](#visual-studio-code-dev-container)** | Docker Desktop + VS Code | Containerized consistency |
-| **[GitHub Codespaces](#github-codespaces)** | GitHub account | Cloud development environment |
-| **[Azure Cloud Shell](#azure-cloud-shell)** | Web browser | Pre-configured tools, session timeouts |
-| **[GitHub Actions](#github-actions)** | Azure service principal | Federated identity, automated deployment |
+| **[GitHub Codespaces](#option-a-github-codespaces)** | GitHub account | Cloud development environment |
+| **[Visual Studio Code Dev Container](#option-b-vs-code-dev-container)** | Docker Desktop + VS Code | Containerized consistency |
+| **[Local Machine](#option-c-local-machine)** | Install [software requirements](#14-software-requirements) | Most flexible, requires local setup |
+| **[Azure Cloud Shell](#option-d-azure-cloud-shell)** | Web browser | Pre-configured tools, session timeouts |
+| **[GitHub Actions](#option-e-github-actions)** | Azure service principal | Federated identity, automated deployment |
 
-### Local Machine
+### Option A: GitHub Codespaces
 
-Deploy with full control over your development environment.
-
-**Setup**: Install the [software requirements](#software-requirements)
-
-**Deployment**: Follow the [quick start steps](#quick-start) commands
-
-### Visual Studio Code Dev Container
-Deploy from a containerized environment for team consistency.
-
-**Setup**: 
-1. Install Visual Studio Code, [Docker Desktop](https://www.docker.com/products/docker-desktop) and [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-2. Clone repository and open in VS Code
-3. Reopen in container when prompted
-
-**Deployment**: All tools pre-installed - follow the [quick start steps](#quick-start) commands
-
-### GitHub Codespaces  
-
-Deploy from a cloud development environment with pre-configured tools.
-
-**Setup**: 
-1. Go to the repository
+1. Go to the [Real-Time Intelligence Operations repository](https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator)
 2. Click **Code** → **Codespaces** → **Create codespace on main**
+3. Wait for the environment to initialize (2-3 minutes)
+4. All tools are pre-installed; proceed to [Step 4: Deploy](#step-4-deploy-the-solution)
 
-**Deployment**: All tools pre-installed - follow the [quick start steps](#quick-start) commands
+### Option B: VS Code Dev Container
 
-### Azure Cloud Shell
+**Consistent development environment using Docker.**
 
-Deploy from Azure's browser-based terminal with zero local installation.
+1. Install [Visual Studio Code](https://code.visualstudio.com/)
+2. Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
+3. Install [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) in VS Code
+4. Clone the repository:
 
-**Setup**: Open [Azure Cloud Shell](https://shell.azure.com) and install Azure Developer CLI:
-```bash
-curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
-```
+   ```bash
+   git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
+   cd real-time-intelligence-operations-solution-accelerator
+   ```
 
-**Deployment**: Follow the [quick start steps](#quick-start) commands
+5. Open the folder in VS Code
+6. Click "Reopen in Container" when prompted
+7. All tools are pre-installed; proceed to [Step 4: Deploy](#step-4-deploy-the-solution)
 
-### GitHub Actions
+### Option C: Local Machine
 
-Deploy using automated CI/CD pipeline with GitHub Actions and Azure federated identity.
+**Full control with your local development environment.**
 
-**Setup**:
+1. Install the [software requirements](#14-software-requirements) above
+2. Clone the repository:
+
+   ```bash
+   git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
+   cd real-time-intelligence-operations-solution-accelerator
+   ```
+
+3. Proceed to [Step 4: Deploy](#step-4-deploy-the-solution)
+
+### Option D: Azure Cloud Shell
+
+**Deploy from your browser—no local setup required.**
+
+1. Go to [Azure Cloud Shell](https://shell.azure.com)
+2. Ensure shell type is set to **Bash**
+3. Install Azure Developer CLI:
+
+   ```bash
+   curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
+   ```
+
+4. Clone the repository:
+
+   ```bash
+   git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
+   cd real-time-intelligence-operations-solution-accelerator
+   ```
+
+5. Proceed to [Step 4: Deploy](#step-4-deploy-the-solution)
+
+### Option E: GitHub Actions
+
+**Automated CI/CD deployment using GitHub Actions.**
+
 1. Fork the repository to your GitHub account
-2. Configure [Azure service principal with federated identity credentials](https://learn.microsoft.com/azure/developer/github/connect-from-azure-openid-connect) for GitHub Actions (recommened)
-3. Set repository variables in GitHub:
-   - `AZURE_CLIENT_ID`: Service principal client ID
-   - `AZURE_TENANT_ID`: Azure tenant ID  
-   - `AZURE_SUBSCRIPTION_ID`: Target subscription ID
-   - `AZURE_ENV_NAME`: Environment name for resource naming
-4. Set optinall repository  variables in GitHub if needed:
-   - `FABRIC_WORKSPACE_ADMINISTRATORS`: Comma-separated admin identities
-   - `FABRIC_ACTIVATOR_ALERTS_EMAIL`: Email for alert notifications
-
-**Deployment**: 
-1. Navigate to **Actions** tab in your GitHub repository
-2. Select **CI/CD Azure - Real-Time Intelligence Operations** workflow
-3. Click **Run workflow** to trigger deployment
-4. Monitor deployment progress and view summary with Azure Portal links
+2. Configure [Azure service principal with federated identity credentials](https://learn.microsoft.com/azure/developer/github/connect-from-azure-openid-connect)
+3. Set the following repository secrets in GitHub Settings → Secrets and variables → Actions:
+   - `AZURE_CLIENT_ID` - Service principal client ID
+   - `AZURE_TENANT_ID` - Azure tenant ID
+   - `AZURE_SUBSCRIPTION_ID` - Target subscription ID
+   - `AZURE_ENV_NAME` - Environment name (3-16 alphanumeric characters)
+4. (Optional) Set these additional variables:
+   - `FABRIC_WORKSPACE_ADMINISTRATORS` - Comma-separated admin identities
+   - `FABRIC_ACTIVATOR_ALERTS_EMAIL` - Email address for alert notifications
+5. Go to **Actions** tab in your GitHub repository
+6. Select **CI/CD Azure - Real-Time Intelligence Operations** workflow
+7. Click **Run workflow** and select your branch
+8. Monitor the deployment progress in the Actions tab
 
 ---
 
-## Advanced Configuration Options
+## Step 3: Configure Deployment Settings - Advanced Configuration
 
-The solution accelerator provides flexible configuration options to customize your deployment.
+> **ℹ️ Optional Step:** This step is optional and only needed if you want to customize your deployment.
+>
+> **When to do this step:**
+>
+> - You want to use custom names for workspace or components
+> - You need to specify workspace administrators
+> - You want to configure alert email addresses
+> - You plan to use an existing Fabric capacity (cost optimization)
+>
+> **If you want a standard deployment with defaults:** Skip directly to [Step 4: Deploy the Solution](#step-4-deploy-the-solution).
 
-### 🏗️ Infrastructure Configuration
+Review these configuration options before deploying. You can use default values or customize as needed.
 
-The solution accelerator provides flexible configuration options to customize your deployment. These environment variables can be set before running `azd up` to override default naming conventions.
+### 3.1 Environment Variables (Optional)
 
-#### Customizable Environment Variables
+Set these variables before running `azd up` to customize your deployment:
 
-| Parameter | Environment Variable | Description | Default | Example |
-|-----------|---------------------|-------------|---------|---------|
-| **Workspace Name** | `FABRIC_WORKSPACE_NAME` | Custom name for the Fabric workspace | `Real-Time Intelligence for Operations - <env-name><suffix>` | `"My RTI Workspace"` |
-| **Workspace Administrators** | `FABRIC_WORKSPACE_ADMINISTRATORS` | Comma-separated list of workspace administrator identities (UPNs or GUIDs) | None | `"user@company.12345678-1234-abcd-1234-123456789abc"` |
-| **Eventhouse Name** | `FABRIC_EVENTHOUSE_NAME` | Name for the Fabric Eventhouse | `rti_eventhouse_<env-name><suffix>` | `"my_custom_eventhouse"` |
-| **KQL Database Name** | `FABRIC_EVENTHOUSE_DATABASE_NAME` | Name for the KQL database | `rti_kqldb_<env-name><suffix>` | `"my_custom_kql_db"` |
-| **Event Hub Connection** | `FABRIC_EVENT_HUB_CONNECTION_NAME` | Name for Event Hub connection | `rti_eventhub_connection_<env-name><suffix>` | `"my_eventhub_connection"` |
-| **Dashboard Title** | `FABRIC_RTIDASHBOARD_NAME` | Title for the real-time dashboard | `rti_dashboard_<env-name><suffix>` | `"My Custom Dashboard"` |
-| **Eventstream Name** | `FABRIC_EVENTSTREAM_NAME` | Name for the Fabric Eventstream | `rti_eventstream_<env-name><suffix>` | `"my_custom_eventstream"` |
-| **Activator Name** | `FABRIC_ACTIVATOR_NAME` | Name for the real-time alerting Activator | `rti_activator_<env-name><suffix>` | `"my_custom_activator"` |
-| **Activator Alerts Email** | `FABRIC_ACTIVATOR_ALERTS_EMAIL` | Email address for Activator alert notifications | `alerts@contoso.com` | `"myteam@company.com"` |
-
-#### Automatically Managed Environment Variables
-
-These variables are automatically set by the deployment process (Bicep outputs) and typically don't need manual configuration:
-
-| Environment Variable | Description | Source |
-|---------------------|-------------|--------|
-| `AZURE_ENV_NAME` | Environment name (used in resource naming) | Azure Developer CLI |
-| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID | Azure Developer CLI |
-| `AZURE_RESOURCE_GROUP` | Azure resource group name | Azure Developer CLI |
-| `AZURE_FABRIC_CAPACITY_NAME` | Name of the Fabric capacity | Bicep template output |
-| `AZURE_EVENT_HUB_NAME` | Event Hub name | Bicep template output |
-| `AZURE_EVENT_HUB_NAMESPACE_NAME` | Event Hub namespace name | Bicep template output |
-| `SOLUTION_SUFFIX` | Suffix appended to resource names | Azure Developer CLI |
-
-**Configuration Examples:**
+**Workspace Configuration:**
 
 ```bash
-# Set custom names
 azd env set FABRIC_WORKSPACE_NAME "My RTI Workspace"
-azd env set FABRIC_WORKSPACE_ADMINISTRATORS "user@company.com,12345678-1234-abcd-1234-123456789abc"
+azd env set FABRIC_WORKSPACE_ADMINISTRATORS "user@company.com,another-user@company.com"
+```
+
+**Component Names:**
+
+```bash
 azd env set FABRIC_EVENTHOUSE_NAME "my_custom_eventhouse"
 azd env set FABRIC_EVENTHOUSE_DATABASE_NAME "my_custom_kql_db"
 azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
 azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
 azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
 azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
-azd env set FABRIC_ACTIVATOR_ALERTS_EMAIL "myteam@company.com"
-
-# Use existing Fabric capacity (cost optimization)
-azd env set 'AZURE_DEPLOY_FABRIC_CAPACITY' 'false'
-
-# Deploy with custom configuration
-azd up
 ```
 
-> **💡 Cost Optimization Note**
+**Alert Configuration:**
+
+```bash
+azd env set FABRIC_ACTIVATOR_ALERTS_EMAIL "myteam@company.com"
+```
+
+**Cost Optimization:**
+
+```bash
+# Use existing Fabric capacity (skips creating new capacity)
+azd env set AZURE_DEPLOY_FABRIC_CAPACITY false
+```
+
+### 3.2 Configuration Reference
+
+#### Customizable Variables
+
+| Variable | Description | Default Value |
+|----------|-------------|---|
+| `FABRIC_WORKSPACE_NAME` | Fabric workspace name | `Real-Time Intelligence for Operations - <env-name><suffix>` |
+| `FABRIC_WORKSPACE_ADMINISTRATORS` | Workspace admins (comma-separated identities) | None |
+| `FABRIC_EVENTHOUSE_NAME` | Eventhouse name | `rti_eventhouse_<env-name><suffix>` |
+| `FABRIC_EVENTHOUSE_DATABASE_NAME` | KQL database name | `rti_kqldb_<env-name><suffix>` |
+| `FABRIC_EVENT_HUB_CONNECTION_NAME` | Event Hub connection name | `rti_eventhub_connection_<env-name><suffix>` |
+| `FABRIC_RTIDASHBOARD_NAME` | Real-time dashboard name | `rti_dashboard_<env-name><suffix>` |
+| `FABRIC_EVENTSTREAM_NAME` | Eventstream name | `rti_eventstream_<env-name><suffix>` |
+| `FABRIC_ACTIVATOR_NAME` | Activator name | `rti_activator_<env-name><suffix>` |
+| `FABRIC_ACTIVATOR_ALERTS_EMAIL` | Alert email address | `alerts@contoso.com` |
+
+#### System-Managed Variables
+
+These are automatically set by the deployment:
+
+| Variable | Description |
+|----------|-------------|
+| `AZURE_ENV_NAME` | Environment name (used in resource naming) |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription ID |
+| `AZURE_RESOURCE_GROUP` | Azure resource group name |
+| `AZURE_FABRIC_CAPACITY_NAME` | Fabric capacity name |
+| `AZURE_EVENT_HUB_NAME` | Event Hub name |
+| `AZURE_EVENT_HUB_NAMESPACE_NAME` | Event Hub namespace name |
+| `SOLUTION_SUFFIX` | Suffix appended to resource names |
+
+---
+
+## Step 4: Deploy the Solution
+
+### 4.1 Clone Repository (If Needed)
+
+If you haven't already cloned the repository, do so now:
+
+```bash
+git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
+cd real-time-intelligence-operations-solution-accelerator
+```
+
+### 4.2 Authenticate with Azure
+
+```bash
+# Login to Azure
+azd auth login
+
+# For specific Azure tenants:
+azd auth login --tenant-id <your-tenant-id>
+```
+
+> **Note: Finding Your Tenant ID:**
 >
-> **For SAS and MSFT development environments**: To reduce cost footprint of Fabric Capacity, you can set `AZURE_DEPLOY_FABRIC_CAPACITY` to `false` to use a pre-defined capacity for testing instead of deploying a new capacity instance.
+> 1. Open [Azure Portal](https://portal.azure.com/)
+> 2. Go to Microsoft Entra ID
+> 3. Copy the **Tenant ID** from the Overview section
+
+Additionally, authenticate with Azure CLI to enable the deployment script to access Azure resources:
+
+```bash
+# login to access Azure resources
+az login
+```
+
+### 4.3 Configure Alert Email (Recommended)
+
+Set your email address to receive real-time alerts:
+
+```bash
+azd env set FABRIC_ACTIVATOR_ALERTS_EMAIL "myteam@company.com" # set email to receive alerts
+```
+
+### 4.4 Customize Resource Names (Optional)
+
+Configure custom names for your workspace and components:
+
+**Workspace Configuration:**
+
+```bash
+azd env set FABRIC_WORKSPACE_NAME "My RTI Workspace"
+azd env set FABRIC_WORKSPACE_ADMINISTRATORS "user@company.com,12345678-1234-abcd-1234-123456789abc" # comma-separated
+```
+
+**Component Names:**
+
+```bash
+azd env set FABRIC_EVENTHOUSE_NAME "my_custom_eventhouse"
+azd env set FABRIC_EVENTHOUSE_DATABASE_NAME "my_custom_kql_db"
+azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
+azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
+azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
+azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
+```
+
+> **Note:** These are optional. If not set, defaults will use your environment name and a generated suffix.
+
+### 4.5 Start Deployment
+
+Run the deployment command:
+
+```bash
+azd up # Deploy everything
+```
+
+During deployment, you'll be prompted for:
+
+1. **Environment name** (e.g., "myrtisys") - This will be used to build the name of the deployed Azure resources.
+2. **Azure subscription** - Select your target subscription
+3. **Azure resource group** - Create new or select existing group
+
+**What Happens During Deployment:**
+
+1. Infrastructure provisioning (Azure resources)
+2. Fabric workspace creation
+3. Component setup (Eventhouse, dashboard, Activator)
+4. Sample data loading
+5. Connection configuration
+
+### 4.6 Verify Deployment Success
+
+After `azd up` completes successfully:
+
+- ✅ Check the deployment summary displayed in your terminal
+- ✅ Verify resources in [Azure Portal](https://portal.azure.com/)
+- ✅ Confirm your Fabric workspace in [Fabric workspace management](https://app.fabric.microsoft.com)
+
+⚠️ **Deployment Issues?** Check [Known Issues and Troubleshooting](#known-issues-and-troubleshooting) for common solutions.
+
+**What You Get:**
+
+- Complete real-time analytics platform with Event Hub, Fabric Eventhouse, KQL database
+- Sample data pre-loaded for testing and demonstration
+- Real-time dashboards for operational monitoring
+- Automated alerting with Activator for anomaly detection
+- Eventstream for data pipeline orchestration
 
 ---
 
-## Known Limitations
+## Step 5: Post-Deployment Configuration
 
-###  Fabric REST API Permission Issues
+### 5.1 Set Up Fabric Data Agent
 
-**Issue**: Service Principals may lack sufficient permissions to access Microsoft Fabric REST APIs.
+Enable the AI-powered Fabric Data Agent to answer natural language questions about your data.
 
-**Impact**: 
-- Deployment fails during workspace creation or management operations
-- Clear error messages guide resolution
+- **Setup and Configuration:** See [Fabric Data Agent Guide](./FabricDataAgentGuide.md)
+- **Demonstration Flow:** See [Demonstrator's Guide - Step 1](./DemonstratorGuide.md#step-1-demonstrate-the-fabric-data-agent)
 
-**Resolution**:
-1. **Verify Fabric Licensing**: Ensure your organization has appropriate [Microsoft Fabric licenses](https://learn.microsoft.com/fabric/enterprise/licenses)
-2. **Review Identity Configuration**: Follow the [Fabric Identity Support](https://learn.microsoft.com/rest/api/fabric/articles/identity-support) documentation
-3. **Configure Service Principal**: If using a service principal, ensure it's properly configured
-4. **Check API Permissions**: Verify the deployment identity has the required Fabric REST API permissions as listed in the [prerequisites](#prerequisites)
+### 5.2 Start Event Simulation
+
+Test your new environment with real-time streaming data.
+
+- **Setup and Instructions:** See [Event Simulator Guide](./EventSimulatorGuide.md)
+
+### 5.3 Configure Activator for Anomaly Detection
+
+Set up real-time anomaly detection and alert notifications with Activator.
+
+- **Pre-configured Alert Rules:**
+  - **High Speed** - Triggers when asset speed exceeds 100
+  - **Low Speed** - Triggers when asset speed falls below 28
+  - **High Vibration** - Triggers when vibration exceeds 0.4
+  - **High Defect Probability** - Triggers when defect probability exceeds 0.02
+
+- **Configuration:**
+
+  - Alert delivery via email (configured during deployment)
+  - Optional: Configure Microsoft Teams channel alerts
+  - Review and customize alert thresholds as needed
+
+- **Setup and Configuration:** See [Activator Guide](./ActivatorGuide.md)
+
+- **Demonstration Flow:** See [Demonstrator's Guide - Step 5](./DemonstratorGuide.md#step-5-demonstrate-alert-mechanisms-with-activator)
+
+### 5.4 Verify Deployment Components
+
+Access your deployed resources to confirm everything is working:
+
+- **Azure Portal:**
+
+  - View infrastructure, Event Hub, and Fabric Capacity
+  - Monitor resource health and metrics
+
+- **Fabric Workspace (app.fabric.microsoft.com):**
+
+  - Eventhouse and KQL database
+  - Real-time dashboards
+  - Eventstream data pipeline
+  - Activator with configured alert rules
+
+### 5.5 Explore Sample Features
+
+- **Real-Time Dashboard:**
+  - Open the dashboard created during deployment (e.g., `rti_dashboard_myrti...`)
+  - Monitor live asset telemetry and operational metrics
+
+- **Data Agent (Conversational Queries):**
+  - Ask natural language questions about your data
+  - See AI-powered query generation
+  - Explore data insights conversationally
 
 ---
 
-## Environment Cleanup
+## Step 6: Deployment Results
 
-When you no longer need your deployed environment, Azure Developer CLI provides a streamlined approach to completely remove all resources and clean up your Microsoft Fabric workspace.
+### Azure Infrastructure
 
-The `azd down` command orchestrates a complete environment cleanup process that:
+After successful deployment, you have:
 
-1. **Removes Fabric Workspace Components**: Executes [`delete_fabric_rti.py`](../infra/scripts/fabric/delete_fabric_rti.py) via `predown` hook to safely delete workspace connections and components
-2. **Deletes Fabric Workspace**: Removes the Microsoft Fabric workspace and all associated items 
-3. **Deletes Fabric connection**: Removes the Microsoft Fabric Event Hub connection 
-4. **Deprovisions Azure Resources**: Removes all Azure infrastructure components including Event Hub and Fabric Capacity
-5. **Preserves Local Environment**: Keeps your local development environment and configurations intact
+| Resource | Purpose | Details |
+|----------|---------|---------|
+| **Fabric Capacity** | Compute for Fabric workloads | Auto-scaled, dedicated capacity |
+| **Azure Event Hub** | Real-time data ingestion | Scalable event streaming service |
+| **Azure Resource Group** | Resource organization | Contains all deployed resources |
 
-**Complete cleanup commands:**
+![Azure Portal showing deployed resources](./images/deployment/deployment_overview_azure.png)
+
+### Fabric Workspace
+
+**Workspace Name:** `Real-Time Intelligence for Operations - <your-env-name><suffix>`
+
+**Contents:**
+
+- Eventhouse (real-time analytics engine)
+- KQL Database (high-performance queries)
+- Real-time Dashboards (operational monitoring)
+- Eventstream (data pipeline orchestration)
+- Activator (anomaly detection and alerting)
+- Sample data (pre-loaded for testing)
+
+![Fabric Workspace with all components](./images/deployment/deployment_overview_fabric_workspace.png)
+
+### Fabric Components
+
+#### Eventhouse & KQL Database
+
+| Component | Purpose |
+|-----------|---------|
+| **Eventhouse** | Real-time analytics engine for streaming data |
+| **KQL Database** | High-performance query database with pre-configured schema |
+| **Sample Tables** | Asset telemetry, events, locations, product data |
+
+![Fabric Eventhouse and tables](./images/deployment/deployment_overview_fabric_eventhouse.png)
+
+#### Event Hub Connection
+
+Secure connection for real-time data flow:
+
+- **Name:** `rti_eventhub_connection_<env-name><suffix>`
+- **Type:** Event Hub source connector
+- **Authentication:** SAS token-based security
+
+![Event Hub Connection configuration](./images/deployment/deployment_overview_fabric_eventhub_connection.png)
+
+#### Real-Time Dashboard
+
+Refer to [Real-Time Dashboard Guide](./RealTimeIntelligenceDashboardGuide.md) for detailed KPIs and expected results.
+
+#### Activator (Automated Alerting)
+
+Refer to [Activator Guide](./ActivatorGuide.md) for detailed instructions and anomaly rules.
+
+#### Eventstream
+
+Data pipeline orchestration:
+
+- **Source:** Azure Event Hub (real-time events)
+- **Processing:** Streaming data transformation
+- **Destination:** Eventhouse KQL Database
+- **Data Fields:** AssetId, Speed, Vibration, Temperature, Humidity, DefectProbability
+
+![Eventstream data flow configuration](./images/deployment/deployment_overview_fabric_eventstream.png)
+
+---
+
+## Step 7: Clean Up (Optional)
+
+### Remove All Resources
+
+When you no longer need the deployment:
 
 ```bash
 # Navigate to your solution directory
@@ -390,3 +562,100 @@ cd real-time-intelligence-operations-solution-accelerator
 # Remove everything deployed by azd up
 azd down --force --purge
 ```
+
+**What Gets Cleaned Up:**
+
+- ✅ Fabric workspace and all components
+- ✅ Azure Event Hub and infrastructure
+- ✅ Fabric capacity (if created by deployment)
+- ✅ Resource groups and configurations
+
+**What Gets Preserved:**
+
+- ✅ Local development files
+- ✅ Environment configurations
+- ✅ Source code
+
+> **Note:** This command removes all Azure resources. Ensure you've backed up any important data before running cleanup.
+
+### Manual Cleanup (If Needed)
+
+If automated cleanup fails:
+
+1. Go to [Azure Portal](https://portal.azure.com/)
+2. Navigate to Resource Groups
+3. Select your resource group
+4. Click **Delete resource group**
+5. Confirm deletion
+
+---
+
+**Best Practices:**
+
+- Use descriptive names: `myrti-dev`, `myrti-prod`, `myrti-test`
+- Clean up unused: Run `azd down` to remove environments no longer needed
+
+---
+
+## Known Issues and Troubleshooting
+
+### Fabric REST API Permission Issues
+
+**Problem:** Service Principal lacks Fabric REST API permissions
+
+**Symptoms:**
+
+- Deployment fails during workspace or component creation
+- Error mentions "insufficient permissions" or "unauthorized access"
+
+**Resolution:**
+
+1. **Verify Fabric Licensing** - Ensure your organization has appropriate [Microsoft Fabric licenses](https://learn.microsoft.com/fabric/enterprise/licenses)
+
+2. **Verify Organization Setup:**
+   - Confirm [Microsoft Fabric is enabled](https://learn.microsoft.com/en-us/fabric/admin/fabric-switch) in your organization
+   - Check that appropriate [Fabric licenses](https://learn.microsoft.com/fabric/enterprise/licenses) are assigned
+
+3. **Enable Required Tenant Settings:**
+   - Go to Microsoft 365 admin center
+   - Navigate to Settings → Org settings → Microsoft Fabric
+   - Enable "Service principals and managed identities support on Fabric REST API"
+
+4. **Configure Service Principal Permissions:**
+   - Follow [Fabric Identity Support](https://learn.microsoft.com/rest/api/fabric/articles/identity-support) documentation
+   - Ensure service principal has required [Fabric REST API scopes](https://learn.microsoft.com/rest/api/fabric/articles/scopes)
+
+5. **Verify Azure Permissions:**
+   - Confirm deployment identity has **Contributor** or **Owner** role on subscription/resource group
+   - Check that **Microsoft.Fabric** and **Microsoft.EventHub** resource providers are registered
+
+### For additional help
+
+- Review [Technical Architecture](./TechnicalArchitecture.md) for system design questions
+- See [FAQ](./FAQs.md) for common questions
+
+---
+
+## Next Steps
+
+Now that deployment is complete, explore these resources:
+
+- **[Demonstrator's Guide](./DemonstratorGuide.md)** - How to present and demo the solution
+- **[Event Simulator Guide](./EventSimulatorGuide.md)** - Test with real-time streaming data
+- **[Dashboard Guide](./RealTimeIntelligenceDashboardGuide.md)** - Customize dashboards and queries
+- **[Activator Guide](./ActivatorGuide.md)** - Configure alerts and anomaly detection rules
+- **[Data Agent Guide](./FabricDataAgentGuide.md)** - Enable AI-powered conversational queries
+- **[Data Ingestion Guide](./FabricDataIngestion.md)** - Load and manage historical data
+- **[Technical Architecture](./TechnicalArchitecture.md)** - System design, components, and data flow
+
+---
+
+## Need Help?
+
+- 🐛 **Issues:** Check [Known Issues and Troubleshooting](#known-issues-and-troubleshooting) section above
+- 🐞 **Report Issue:** [Open a GitHub Issue](https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator/issues/new) for bugs or problems
+- 💬 **Support:** Review [Support Guidelines](../SUPPORT.md)
+- 🔧 **Contributing:** See [Contributing Guide](../CONTRIBUTING.md)
+- 📖 **FAQs:** Check [Frequently Asked Questions](./FAQs.md)
+
+---
