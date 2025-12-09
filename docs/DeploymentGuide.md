@@ -92,7 +92,7 @@ Your organization must have the following setup:
 
 ### 1.3 Deployment Identity
 
-Choose one identity type for deployment:
+Deployment identity determines how your deployment interacts with Azure and Microsoft Fabric resources. Choose one identity type for deployment:
 
 | Identity Type | Best For | Setup Required |
 |---------------|----------|-----------------|
