@@ -24,5 +24,7 @@ jobs:
       
       - name: Run flake8
         run: |
-          flake8 --config=.flake8 src  # Specify the directory to lint
+          flake8 src  # Specify the directory to lint
+
+
 
