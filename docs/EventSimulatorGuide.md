@@ -26,8 +26,6 @@ export EVENT_HUB_NAME="<event-hub-name>"
 ```bash
 export SIMULATION_INTERVAL="5"        # Seconds between events per asset (default: 5)
 export MAX_RUNTIME_SECONDS="300"      # Max runtime in seconds (default: unlimited)
-export ASSETS_CSV_PATH="../data/assets.csv"     # Path to assets file
-export PRODUCTS_CSV_PATH="../data/products.csv" # Path to products file
 ```
 
 ### 3. Run the Simulator
