@@ -3367,3 +3367,260 @@ class FabricWorkspaceApiClient(FabricApiClient):
             elapsed_time = time.time() - start_time
             duration_str = self._format_duration(elapsed_time)
             raise FabricApiError(f"Unexpected error executing notebook {notebook_id}: {str(e)}")
+
+    # Environment operations
+    def create_environment(self,
+                          display_name: str,
+                          description: Optional[str] = None,
+                          folder_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create a new environment in the workspace.
+        
+        Args:
+            display_name: Display name for the environment
+            description: Optional description for the environment
+            folder_id: Optional folder ID where to create the environment
+            
+        Returns:
+            Dictionary containing the created environment details
+        """
+        self._log(f"Creating environment '{display_name}' in workspace {self.workspace_id}")
+        
+        # Build request body
+        request_body = {
+            "displayName": display_name
+        }
+        
+        if description:
+            request_body["description"] = description
+            
+        if folder_id:
+            request_body["folderId"] = folder_id
+        
+        response = self._make_request(
+            uri=f"workspaces/{self.workspace_id}/environments",
+            method="POST",
+            data=json.dumps(request_body),
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [201, 202]:
+            self._log(f"Successfully created environment '{display_name}'")
+            return response.json()
+        else:
+            self._log(f"Failed to create environment '{display_name}': {response.status_code} - {response.text}", "ERROR")
+            raise FabricApiError(f"Failed to create environment: {response.text}", response.status_code, response.json() if response.content else None)
+
+    def list_environments(self, 
+                         continuation_token: Optional[str] = None,
+                         get_all: bool = True) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        List environments in the workspace.
+        
+        Args:
+            continuation_token: Optional continuation token for pagination
+            get_all: If True, retrieves all environments by handling pagination automatically
+            
+        Returns:
+            Dictionary with environment list and pagination info, or List of all environments if get_all=True
+        """
+        self._log(f"Listing environments in workspace {self.workspace_id}")
+        
+        if not get_all:
+            # Single page request
+            uri = f"workspaces/{self.workspace_id}/environments"
+            if continuation_token:
+                uri += f"?continuationToken={continuation_token}"
+                
+            response = self._make_request(uri=uri, method="GET", wait_for_lro=False)
+            
+            if response.status_code == 200:
+                result = response.json()
+                self._log(f"Successfully retrieved {len(result.get('value', []))} environments")
+                return result
+            else:
+                self._log(f"Failed to list environments: {response.status_code} - {response.text}", "ERROR")
+                raise FabricApiError(f"Failed to list environments: {response.text}", response.status_code, response.json() if response.content else None)
+        else:
+            # Get all environments with automatic pagination
+            all_environments = []
+            current_token = continuation_token
+            
+            while True:
+                uri = f"workspaces/{self.workspace_id}/environments"
+                if current_token:
+                    uri += f"?continuationToken={current_token}"
+                    
+                response = self._make_request(uri=uri, method="GET", wait_for_lro=False)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    environments = result.get('value', [])
+                    all_environments.extend(environments)
+                    
+                    # Check if there are more pages
+                    current_token = result.get('continuationToken')
+                    if not current_token:
+                        break
+                else:
+                    self._log(f"Failed to list environments: {response.status_code} - {response.text}", "ERROR")
+                    raise FabricApiError(f"Failed to list environments: {response.text}", response.status_code, response.json() if response.content else None)
+            
+            self._log(f"Successfully retrieved {len(all_environments)} environments")
+            return all_environments
+
+    def get_environment_by_name(self, environment_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get an environment by its display name.
+        
+        Args:
+            environment_name: Display name of the environment to find
+            
+        Returns:
+            Dictionary containing the environment details if found, None otherwise
+        """
+        self._log(f"Getting environment by name: '{environment_name}'")
+        
+        try:
+            environments = self.list_environments(get_all=True)
+            
+            for env in environments:
+                if env.get('displayName') == environment_name:
+                    self._log(f"Found environment '{environment_name}' with ID: {env.get('id')}")
+                    return env
+                    
+            self._log(f"Environment '{environment_name}' not found")
+            return None
+            
+        except Exception as e:
+            self._log(f"Error getting environment by name '{environment_name}': {str(e)}", "ERROR")
+            return None
+
+    def delete_environment(self, environment_id: str) -> bool:
+        """
+        Delete an environment from the workspace.
+        
+        Args:
+            environment_id: ID of the environment to delete
+            
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        self._log(f"Deleting environment with ID: {environment_id}")
+        
+        try:
+            response = self._make_request(
+                uri=f"workspaces/{self.workspace_id}/environments/{environment_id}",
+                method="DELETE",
+                wait_for_lro=False
+            )
+            
+            if response.status_code == 200:
+                self._log(f"Successfully deleted environment {environment_id}")
+                return True
+            else:
+                self._log(f"Failed to delete environment {environment_id}: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self._log(f"Error deleting environment {environment_id}: {str(e)}", "ERROR")
+            return False
+
+    def publish_environment(self, environment_id: str) -> Dict[str, Any]:
+        """
+        Trigger a publish operation for an environment.
+        
+        Args:
+            environment_id: ID of the environment to publish
+            
+        Returns:
+            Dictionary containing the publish operation details
+        """
+        self._log(f"Publishing environment with ID: {environment_id}")
+        
+        response = self._make_request(
+            uri=f"workspaces/{self.workspace_id}/environments/{environment_id}/staging/publish?beta=false",
+            method="POST",
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [200, 202]:
+            self._log(f"Successfully triggered publish for environment {environment_id}")
+            return response.json()
+        else:
+            self._log(f"Failed to publish environment {environment_id}: {response.status_code} - {response.text}", "ERROR")
+            raise FabricApiError(f"Failed to publish environment: {response.text}", response.status_code, response.json() if response.content else None)
+
+    def update_environment_definition(self,
+                                     environment_id: str,
+                                     environment_yml_base64: Optional[str] = None,
+                                     sparkcompute_yml_base64: Optional[str] = None,
+                                     platform_base64: Optional[str] = None,
+                                     update_metadata: bool = False) -> bool:
+        """
+        Update the definition of an environment.
+        
+        Args:
+            environment_id: ID of the environment to update
+            environment_yml_base64: Optional base64 encoded environment.yml content
+            sparkcompute_yml_base64: Optional base64 encoded Sparkcompute.yml content
+            platform_base64: Optional base64 encoded .platform content
+            update_metadata: Whether to update metadata using .platform file
+            
+        Returns:
+            True if update was successful, False otherwise
+        """
+        self._log(f"Updating definition for environment {environment_id}")
+        
+        # Build definition parts
+        definition_parts = []
+        
+        if environment_yml_base64:
+            definition_parts.append({
+                "path": "Libraries/PublicLibraries/environment.yml",
+                "payload": environment_yml_base64,
+                "payloadType": "InlineBase64"
+            })
+            
+        if sparkcompute_yml_base64:
+            definition_parts.append({
+                "path": "Setting/Sparkcompute.yml",
+                "payload": sparkcompute_yml_base64,
+                "payloadType": "InlineBase64"
+            })
+            
+        if platform_base64:
+            definition_parts.append({
+                "path": ".platform",
+                "payload": platform_base64,
+                "payloadType": "InlineBase64"
+            })
+        
+        if not definition_parts:
+            self._log("No definition parts provided for update", "ERROR")
+            return False
+            
+        request_body = {
+            "definition": {
+                "format": "Environment",
+                "parts": definition_parts
+            }
+        }
+        
+        uri = f"workspaces/{self.workspace_id}/environments/{environment_id}/updateDefinition"
+        if update_metadata:
+            uri += "?updateMetadata=true"
+        
+        response = self._make_request(
+            uri=uri,
+            method="POST",
+            data=json.dumps(request_body),
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [200, 202]:
+            self._log(f"Successfully updated definition for environment {environment_id}")
+            return True
+        else:
+            self._log(f"Failed to update environment definition {environment_id}: {response.status_code} - {response.text}", "ERROR")
+            return False

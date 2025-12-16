@@ -501,7 +501,7 @@ try {
         $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
         # Script is located at infra\scripts\utils\Get-FabricEventstreamDefinition.ps1
         $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
-        $FolderPath = Join-Path $RepoRoot "src" | Join-Path -ChildPath "eventstream"
+        $FolderPath = Join-Path $RepoRoot "src" | Join-Path -ChildPath "definitions" | Join-Path -ChildPath "eventstream"
         Write-Log "Using default folder path: $FolderPath"
     }
     

@@ -20,8 +20,7 @@ import sys
 import os
 import json
 import base64
-from typing import Optional
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 
 def read_file_content(file_path: str) -> str:
@@ -73,6 +72,7 @@ def create_data_agent_and_configure(workspace_client: FabricWorkspaceApiClient,
                                    data_agent_name: str,
                                    kusto_db_id: str,
                                    kusto_db_workspace_id: str,
+                                   environment_id: str,
                                    notebook_name: str) -> dict:
     """
     Create a Data Agent and configure it with a notebook.
@@ -82,6 +82,7 @@ def create_data_agent_and_configure(workspace_client: FabricWorkspaceApiClient,
         data_agent_name: Name of the Data Agent to create
         kusto_db_id: ID of the Kusto database to connect as data source
         kusto_db_workspace_id: ID of the workspace containing the Kusto database
+        environment_id: ID of the environment for data agent configuration
         notebook_name: Name of the configuration notebook to create
         
     Returns:
@@ -140,6 +141,8 @@ def create_data_agent_and_configure(workspace_client: FabricWorkspaceApiClient,
             "__AGENT_ID__": data_agent_id,
             "__KQL_DATABASE_ID__": kusto_db_id,
             "__KQL_DATABASE_WORKSPACE_ID__": kusto_db_workspace_id,
+            "__ENVIRONMENT_ID__": environment_id,
+            "__WORKSPACE_ID__": workspace_client.workspace_id,
             "__AGENT_INSTRUCTIONS__": agent_instructions,
             "__DATA_SOURCE_INSTRUCTIONS__": data_source_instructions,
             "__DATA_SOURCE_DESCRIPTION__": data_source_description,
@@ -217,10 +220,10 @@ def main():
         epilog="""
 Examples:
   # Create and configure Data Agent with default notebook name
-  python fabric_data_agent.py --workspace-id "12345678-1234-1234-1234-123456789012" --data-agent-name "Operations Agent" --kusto-db-id "87654321-4321-4321-4321-210987654321" --kusto-db-workspace-id "87654321-4321-4321-4321-210987654321"
+  python fabric_data_agent.py --workspace-id "12345678-1234-1234-1234-123456789012" --data-agent-name "Operations Agent" --kusto-db-id "87654321-4321-4321-4321-210987654321" --kusto-db-workspace-id "87654321-4321-4321-4321-210987654321" --environment-id "99999999-8888-7777-6666-555544443333"
   
   # Create and configure Data Agent with custom notebook name
-  python fabric_data_agent.py --workspace-id "12345678-1234-1234-1234-123456789012" --data-agent-name "Operations Agent" --kusto-db-id "87654321-4321-4321-4321-210987654321" --kusto-db-workspace-id "87654321-4321-4321-4321-210987654321" --notebook-name "My Custom Agent Config"
+  python fabric_data_agent.py --workspace-id "12345678-1234-1234-1234-123456789012" --data-agent-name "Operations Agent" --kusto-db-id "87654321-4321-4321-4321-210987654321" --kusto-db-workspace-id "87654321-4321-4321-4321-210987654321" --environment-id "99999999-8888-7777-6666-555544443333" --notebook-name "My Custom Agent Config"
         """
     )
     
@@ -249,6 +252,12 @@ Examples:
     )
     
     parser.add_argument(
+        "--environment-id", 
+        required=True, 
+        help="ID of the environment for data agent configuration"
+    )
+    
+    parser.add_argument(
         "--notebook-name", 
         required=False,
         default=None,
@@ -271,6 +280,7 @@ Examples:
             data_agent_name=args.data_agent_name,
             kusto_db_id=args.kusto_db_id,
             kusto_db_workspace_id=args.kusto_db_workspace_id,
+            environment_id=args.environment_id,
             notebook_name=notebook_name
         )
         

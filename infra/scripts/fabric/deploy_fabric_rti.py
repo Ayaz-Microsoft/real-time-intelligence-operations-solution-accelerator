@@ -275,7 +275,7 @@ def main():
 
     # Step 7: Setup dashboard
     # Build dashboard file path relative to repository root
-    rti_dashboard_file_path = os.path.join(repo_dir, "src", "realTimeDashboard", "RealTimeDashboard.json")
+    rti_dashboard_file_path = os.path.join(repo_dir, "src", "definitions", "realTimeDashboard", "RealTimeDashboard.json")
     
     print_step(7, 11, "Setting up Real-time Dashboard", workspace_id=workspace_id, dashboard_title=dashboard_title, cluster_uri=kusto_cluster_uri)
     try:
@@ -336,7 +336,7 @@ def main():
 
     # Step 10: Update activator definition
     # Build activator file path relative to repository root
-    activator_file_path = os.path.join(repo_dir, "src", "activator", "ReflexEntities.json")
+    activator_file_path = os.path.join(repo_dir, "src", "definitions", "activator", "ReflexEntities.json")
     
     print_step(10, 11, "Updating Activator Definition", workspace_id=workspace_id, activator_id=activator_id, eventstream_name=eventstream_name)
     try:
@@ -361,7 +361,7 @@ def main():
 
     # Step 11: Update eventstream definition
     # Build eventstream file path relative to repository root
-    eventstream_file_path = os.path.join(repo_dir, "src", "eventstream", "eventstream.json")
+    eventstream_file_path = os.path.join(repo_dir, "src", "definitions", "eventstream", "eventstream.json")
     
     print_step(11, 11, "Updating Eventstream Definition", workspace_id=workspace_id, eventstream_id=eventstream_id, eventhouse_database_name=eventhouse_database_name)
     try:
