@@ -10,7 +10,7 @@ azure-mgmt-eventhub==11.2.0   # Event Hub management operations (fabric_event_hu
 azure-kusto-data==6.0.0       # Kusto/KQL database connections and queries (fabric_database.py, fabric_data_ingester.py)
 azure-kusto-ingest==6.0.0     # Data ingestion to Kusto databases (fabric_data_ingester.py)
 requests==2.32.5              # HTTP API calls to Microsoft Fabric REST APIs (fabric_api.py, graph_api.py)
-python-dateutil==2.8.2        # Date/time utilities (fabric_api.py, graph_api.py)
+python-dateutil==2.9.0        # Date/time utilities (fabric_api.py, graph_api.py)
 
 # === EVENT SIMULATION SCRIPTS (infra/scripts/) ===
 # Used by: event_simulator.py, sample_data.py, event_hub_service.py for event generation and simulation
