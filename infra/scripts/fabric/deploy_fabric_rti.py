@@ -19,7 +19,7 @@ Functions executed in order:
 10. setup_activator_definition - Configure Activator (Reflex) for real-time alerts
 11. setup_eventstream_definition - Configure Eventstream with Event Hub to Eventhouse flow
 13. setup_folder - Create folder for organizing environment and data agent
-14. setup_environment - Set up Fabric Environment (Preview) in the created folder
+14. setup_environment - Set up Fabric Environment in the created folder
 15. setup_data_agent - Create and configure Data Agent (Preview) with notebook in the folder
 
 Usage:
@@ -103,10 +103,10 @@ def main():
     eventstream_name = os.getenv("FABRIC_EVENTSTREAM_NAME", f"rti_eventstream_{solution_suffix}")
     activator_name = os.getenv("FABRIC_ACTIVATOR_NAME", f"rti_activator_{solution_suffix}")
     activator_alerts_email = os.getenv("FABRIC_ACTIVATOR_ALERTS_EMAIL", "alerts@contoso.com")
-    environment_name = os.getenv("FABRIC_ENVIRONMENT_NAME", f"rti_environment_{solution_suffix}")
     data_agent_name = os.getenv("FABRIC_DATA_AGENT_NAME", f"rti_dataagent_{solution_suffix}")
-    notebook_name = os.getenv("FABRIC_NOTEBOOK_NAME", f"rti_notebook_{solution_suffix}")
     folder_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME", f"rti_dataagentconfig_{solution_suffix}")
+    environment_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME", f"rti_environment_{solution_suffix}")
+    notebook_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME", f"rti_notebook_{solution_suffix}")
     
     # Show initialization summary
     print(f"🏭 {solution_name} Initialization")
