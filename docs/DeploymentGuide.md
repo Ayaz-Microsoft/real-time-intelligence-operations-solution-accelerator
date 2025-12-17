@@ -267,6 +267,10 @@ azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
 azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
 azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
 azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
+azd env set FABRIC_DATA_AGENT_NAME "my_custom_dataagent"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME "my_custom_folder"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME "my_custom_environment"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME "my_custom_notebook"
 ```
 
 **Alert Configuration:**
