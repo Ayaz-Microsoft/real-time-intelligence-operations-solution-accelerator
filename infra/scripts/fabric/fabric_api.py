@@ -1261,6 +1261,132 @@ class FabricWorkspaceApiClient(FabricApiClient):
         self._log(f"No role assignment found for principal {principal_id}")
         return None
 
+    # Folder operations
+    def get_folders(self) -> List[Dict[str, Any]]:
+        """
+        Get all folders in the workspace.
+        
+        Returns:
+            List of folder objects containing:
+            - id: Folder ID (GUID)
+            - displayName: Folder display name
+            - parentFolderId: Parent folder ID (None for root folders)
+            - workspaceId: Workspace ID
+            
+        Raises:
+            FabricApiError: If request fails
+            
+        Required Scopes:
+            Workspace.Read.All or Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Getting folders from workspace {self.workspace_id}")
+            response = self._make_request(f"workspaces/{self.workspace_id}/folders")
+            
+            if response.status_code == 200:
+                folders = response.json().get('value', [])
+                self._log(f"Found {len(folders)} folder(s)")
+                return folders
+            else:
+                error_msg = f"Failed to get folders: HTTP {response.status_code}"
+                self._log(error_msg, level="error")
+                raise FabricApiError(error_msg)
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error getting folders: {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
+    
+    def create_folder(self, display_name: str, parent_folder_id: Optional[str] = None) -> str:
+        """
+        Create a folder in the workspace.
+        
+        Args:
+            display_name: Folder display name
+            parent_folder_id: Optional parent folder ID (None for root folder)
+            
+        Returns:
+            Created folder ID
+            
+        Raises:
+            FabricApiError: If creation fails
+            
+        Required Scopes:
+            Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Creating folder '{display_name}' in workspace {self.workspace_id}")
+            
+            data = {"displayName": display_name}
+            if parent_folder_id:
+                data["parentFolderId"] = parent_folder_id
+                self._log(f"Creating folder under parent folder {parent_folder_id}")
+            else:
+                self._log("Creating folder in workspace root")
+            
+            response = self._make_request(
+                f"workspaces/{self.workspace_id}/folders", 
+                method="POST", 
+                data=data
+            )
+            
+            if response.status_code in [200, 201]:
+                folder_id = response.json()['id']
+                self._log(f"Successfully created folder '{display_name}' with ID: {folder_id}")
+                return folder_id
+            else:
+                error_msg = f"Failed to create folder: HTTP {response.status_code}"
+                self._log(error_msg, level="error")
+                raise FabricApiError(error_msg)
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error creating folder: {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
+    
+    def get_folder_by_name(self, folder_name: str, parent_folder_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Get a folder by name in the workspace.
+        
+        Args:
+            folder_name: Name of the folder to find
+            parent_folder_id: Optional parent folder ID to search within (None for root folders)
+            
+        Returns:
+            Folder object if found, None otherwise
+            
+        Raises:
+            FabricApiError: If request fails
+            
+        Required Scopes:
+            Workspace.Read.All or Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Searching for folder '{folder_name}' in workspace {self.workspace_id}")
+            folders = self.get_folders()
+            
+            # Filter folders by parent_folder_id and name
+            for folder in folders:
+                folder_parent_id = folder.get('parentFolderId')
+                if (folder['displayName'].lower() == folder_name.lower() and 
+                    folder_parent_id == parent_folder_id):
+                    self._log(f"Found folder '{folder_name}' with ID: {folder['id']}")
+                    return folder
+            
+            self._log(f"Folder '{folder_name}' not found")
+            return None
+            
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error searching for folder '{folder_name}': {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
+
     def create_eventhouse(self, 
                          display_name: str,
                          description: Optional[str] = None,
@@ -2939,12 +3065,13 @@ class FabricWorkspaceApiClient(FabricApiClient):
             self._log(f"❌ Unexpected error updating activator definition: {e}", level="ERROR")
             raise FabricApiError(f"Error updating activator definition: {e}")
     
-    def create_data_agent(self, data_agent_name: str) -> Dict[str, Any]:
+    def create_data_agent(self, data_agent_name: str, folder_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Create a new Data Agent in the workspace. Reference: https://pypi.org/project/fabric-data-agent-sdk/
         
         Args:
             data_agent_name: The name of the Data Agent to be created.
+            folder_id: Optional folder ID where to create the data agent
             
         Returns:
             Dictionary with data agent information including:
@@ -2974,6 +3101,11 @@ class FabricWorkspaceApiClient(FabricApiClient):
                 "artifactType": "LLMPlugin",
                 "displayName": data_agent_name.strip()
             }
+            
+            # Add optional folder ID
+            if folder_id:
+                data["folderId"] = folder_id
+                self._log(f"Creating Data Agent in folder {folder_id}")
             
             # Make the API request using the dataagents endpoint
             response = self._make_request(

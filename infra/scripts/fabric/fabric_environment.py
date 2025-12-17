@@ -51,7 +51,8 @@ def read_environment_yml(file_path: str) -> str:
 def setup_environment(workspace_client: FabricWorkspaceApiClient, 
                      environment_name: str,
                      description: Optional[str] = None,
-                     environment_yml_path: Optional[str] = None) -> Dict[str, Any]:
+                     environment_yml_path: Optional[str] = None,
+                     folder_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Create or update an Environment in the workspace.
     Check if environment exists first, create only if needed, then update configuration.
@@ -61,6 +62,7 @@ def setup_environment(workspace_client: FabricWorkspaceApiClient,
         environment_name: Name of the environment
         description: Optional description for the environment
         environment_yml_path: Optional path to environment.yml file
+        folder_id: Optional folder ID where to create the environment
         
     Returns:
         dict: Environment information
@@ -79,7 +81,8 @@ def setup_environment(workspace_client: FabricWorkspaceApiClient,
             print(f"📁 Creating new Environment: '{environment_name}'")
             environment_info = workspace_client.create_environment(
                 display_name=environment_name,
-                description=description
+                description=description,
+                folder_id=folder_id
             )
             environment_id = environment_info['id']
             print(f"✅ Successfully created Environment: '{environment_name}' ({environment_id})")
@@ -152,6 +155,9 @@ Examples:
     parser.add_argument('--environment-yml-path',
                       help='Optional path to environment.yml file to configure the environment')
     
+    parser.add_argument('--folder-id',
+                      help='Optional folder ID where to create the environment')
+    
     args = parser.parse_args()
     
     try:
@@ -177,7 +183,8 @@ Examples:
             workspace_client=workspace_client,
             environment_name=args.environment_name,
             description=args.description,
-            environment_yml_path=environment_yml_path
+            environment_yml_path=environment_yml_path,
+            folder_id=args.folder_id
         )
         
         # Print summary
@@ -191,6 +198,8 @@ Examples:
             print(f"Description: {args.description}")
         if environment_yml_path:
             print(f"Configuration File: {environment_yml_path}")
+        if args.folder_id:
+            print(f"Folder ID: {args.folder_id}")
         print("="*50)
         
         return 0

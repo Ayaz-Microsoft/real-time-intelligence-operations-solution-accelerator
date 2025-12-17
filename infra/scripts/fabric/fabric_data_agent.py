@@ -20,6 +20,7 @@ import sys
 import os
 import json
 import base64
+from typing import Optional
 from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 
@@ -73,7 +74,9 @@ def setup_data_agent(workspace_client: FabricWorkspaceApiClient,
                                    kusto_db_id: str,
                                    kusto_db_workspace_id: str,
                                    environment_id: str,
-                                   notebook_name: str) -> dict:
+                                   notebook_name: str,
+                                   notebook_folder_id: Optional[str] = None,
+                                   data_agent_folder_id: Optional[str] = None) -> dict:
     """
     Create a Data Agent and configure it with a notebook.
     
@@ -84,6 +87,8 @@ def setup_data_agent(workspace_client: FabricWorkspaceApiClient,
         kusto_db_workspace_id: ID of the workspace containing the Kusto database
         environment_id: ID of the environment for data agent configuration
         notebook_name: Name of the configuration notebook to create
+        notebook_folder_id: Optional folder ID where to create the notebook
+        data_agent_folder_id: Optional folder ID where to create the data agent
         
     Returns:
         dict: Data Agent information if successful
@@ -101,7 +106,7 @@ def setup_data_agent(workspace_client: FabricWorkspaceApiClient,
             print(f"ℹ️  Data Agent '{data_agent_name}' already exists")
         else:
             # Create the Data Agent
-            data_agent = workspace_client.create_data_agent(data_agent_name)
+            data_agent = workspace_client.create_data_agent(data_agent_name, folder_id=data_agent_folder_id)
             print(f"✅ Successfully created Data Agent: {data_agent_name}")
         
         # Get data agent ID and fail if not found
@@ -171,11 +176,11 @@ def setup_data_agent(workspace_client: FabricWorkspaceApiClient,
             if not notebook_id:
                 raise FabricApiError(f"Failed to retrieve notebook ID for existing notebook '{notebook_name}'")
             print(f"ℹ️  Notebook '{notebook_name}' already exists, updating...")
-            workspace_client.update_notebook(notebook_id, notebook_name, notebook_base64)
+            workspace_client.update_notebook(notebook_id, notebook_name, notebook_base64, notebook_folder_id)
             print(f"✅ Successfully updated notebook: {notebook_name} ({notebook_id})")
         else:
             # Create new notebook
-            notebook = workspace_client.create_notebook(notebook_name, notebook_base64)
+            notebook = workspace_client.create_notebook(notebook_name, notebook_base64, notebook_folder_id)
             notebook_id = notebook.get('id')
             if not notebook_id:
                 raise FabricApiError(f"Failed to retrieve notebook ID for created notebook '{notebook_name}'")
@@ -258,6 +263,18 @@ Examples:
         help="Name of the configuration notebook (default: 'Configure Data Agent - <data-agent-name>')"
     )
     
+    parser.add_argument(
+        "--notebook-folder-id", 
+        required=False,
+        help="Optional folder ID where to create the notebook"
+    )
+    
+    parser.add_argument(
+        "--data-agent-folder-id", 
+        required=False,
+        help="Optional folder ID where to create the data agent"
+    )
+    
     # Parse arguments
     args = parser.parse_args()
     
@@ -275,7 +292,9 @@ Examples:
             kusto_db_id=args.kusto_db_id,
             kusto_db_workspace_id=args.kusto_db_workspace_id,
             environment_id=args.environment_id,
-            notebook_name=notebook_name
+            notebook_name=notebook_name,
+            notebook_folder_id=args.notebook_folder_id,
+            data_agent_folder_id=args.data_agent_folder_id
         )
         
         print(f"\n🎉 Final Results:")
