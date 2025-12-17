@@ -68,7 +68,7 @@ def replace_tokens_in_content(content: str, tokens: dict) -> str:
     return content
 
 
-def create_data_agent_and_configure(workspace_client: FabricWorkspaceApiClient, 
+def setup_data_agent(workspace_client: FabricWorkspaceApiClient, 
                                    data_agent_name: str,
                                    kusto_db_id: str,
                                    kusto_db_workspace_id: str,
@@ -269,7 +269,7 @@ Examples:
         workspace_client = FabricWorkspaceApiClient(workspace_id=args.workspace_id)
         
         # Create the Data Agent and configure it
-        result = create_data_agent_and_configure(
+        result = setup_data_agent(
             workspace_client=workspace_client,
             data_agent_name=args.data_agent_name,
             kusto_db_id=args.kusto_db_id,

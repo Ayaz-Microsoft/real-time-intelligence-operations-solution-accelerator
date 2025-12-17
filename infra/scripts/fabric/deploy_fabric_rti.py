@@ -16,10 +16,10 @@ Functions executed in order:
 7. setup_real_time_dashboard - Create real-time dashboard in Fabric
 8. create_eventstream - Create Eventstream (empty)
 9. create_activator - Create Activator (empty)
-10. update_activator_definition - Configure Activator (Reflex) for real-time alerts
-11. update_eventstream_definition - Configure Eventstream with Event Hub to Eventhouse flow
+10. setup_activator_definition - Configure Activator (Reflex) for real-time alerts
+11. setup_eventstream_definition - Configure Eventstream with Event Hub to Eventhouse flow
 12. setup_environment - Set up Fabric Environment (Preview)
-13. create_data_agent - Create and configure Data Agent (Preview)
+13. setup_data_agent - Create and configure Data Agent (Preview)
 
 Usage:
     python deploy_fabric_rti.py
@@ -71,10 +71,10 @@ from fabric_eventhub import setup_eventhub_connection
 from fabric_real_time_dashboard import setup_real_time_dashboard
 from fabric_eventstream import create_eventstream
 from fabric_activator import create_activator
-from fabric_eventstream_definition import update_eventstream_definition
-from fabric_activator_definition import update_activator_definition
+from fabric_eventstream_definition import setup_eventstream_definition
+from fabric_activator_definition import setup_activator_definition
 from fabric_environment import setup_environment
-from fabric_data_agent import create_data_agent_and_configure
+from fabric_data_agent import setup_data_agent
 from fabric_common_utils import get_required_env_var, print_step, print_steps_summary
 
 def main():
@@ -352,7 +352,7 @@ def main():
     
     print_step(10, 13, "Updating Activator Definition", workspace_id=workspace_id, activator_id=activator_id, eventstream_name=eventstream_name)
     try:
-        activator_definition_result = update_activator_definition(
+        activator_definition_result = setup_activator_definition(
             workspace_client=workspace_client,
             workspace_id=workspace_id,
             activator_id=activator_id,
@@ -364,10 +364,10 @@ def main():
         if activator_definition_result is None:
             print_steps_summary(solution_name, solution_suffix, executed_steps, [])
             sys.exit(1)
-        print(f"✅ Successfully completed: update_activator_definition")
-        executed_steps.append("update_activator_definition")
+        print(f"✅ Successfully completed: setup_activator_definition")
+        executed_steps.append("setup_activator_definition")
     except Exception as e:
-        print(f"❌ Exception while executing update_activator_definition: {e}")
+        print(f"❌ Exception while executing setup_activator_definition: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
@@ -377,7 +377,7 @@ def main():
     
     print_step(11, 13, "Updating Eventstream Definition", workspace_id=workspace_id, eventstream_id=eventstream_id, eventhouse_database_name=eventhouse_database_name)
     try:
-        eventstream_definition_result = update_eventstream_definition(
+        eventstream_definition_result = setup_eventstream_definition(
             workspace_client=workspace_client,
             workspace_id=workspace_id,
             eventstream_id=eventstream_result.get('id') if eventstream_result else None,
@@ -395,10 +395,10 @@ def main():
         if eventstream_definition_result is None:
             print_steps_summary(solution_name, solution_suffix, executed_steps, [])
             sys.exit(1)
-        print(f"✅ Successfully completed: update_eventstream_definition")
-        executed_steps.append("update_eventstream_definition")
+        print(f"✅ Successfully completed: setup_eventstream_definition")
+        executed_steps.append("setup_eventstream_definition")
     except Exception as e:
-        print(f"❌ Exception while executing update_eventstream_definition: {e}")
+        print(f"❌ Exception while executing setup_eventstream_definition: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
     
@@ -429,7 +429,7 @@ def main():
     print(f"   If this step fails, you can complete setup manually using: docs/FabricDataAgentGuide.md")
     print_step(13, 13, "Creating and configuring Data Agent (Preview)", data_agent_name=data_agent_name, workspace_id=workspace_id, environment_id=environment_id)
     try:
-        data_agent_result = create_data_agent_and_configure(
+        data_agent_result = setup_data_agent(
             workspace_client=workspace_client,
             data_agent_name=data_agent_name,
             kusto_db_id=eventhouse_database_id,
@@ -447,11 +447,11 @@ def main():
             print(f"\n📝 For detailed instructions, see: docs/FabricDataAgentGuide.md")
             print_steps_summary(solution_name, solution_suffix, executed_steps, [])
             sys.exit(1)
-        print(f"✅ Successfully completed: create_data_agent_and_configure")
-        executed_steps.append("create_data_agent_and_configure")
+        print(f"✅ Successfully completed: setup_data_agent")
+        executed_steps.append("setup_data_agent")
         data_agent_id = data_agent_result.get('id')
     except Exception as e:
-        print(f"❌ Exception while executing create_data_agent_and_configure: {e}")
+        print(f"❌ Exception while executing setup_data_agent: {e}")
         print(f"📄 To complete data agent setup manually:")
         print(f"   1. Open Microsoft Fabric portal: https://app.fabric.microsoft.com")
         print(f"   2. Navigate to your workspace: {workspace_name}")

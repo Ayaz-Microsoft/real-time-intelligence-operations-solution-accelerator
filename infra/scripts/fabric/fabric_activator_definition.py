@@ -114,7 +114,7 @@ def transform_activator_config(activator_config: list,
     
     return activator_config
 
-def update_activator_definition(workspace_client: FabricWorkspaceApiClient,
+def setup_activator_definition(workspace_client: FabricWorkspaceApiClient,
                               workspace_id: str,
                               activator_id: str,
                               activator_file_path: str,
@@ -268,7 +268,7 @@ Examples:
         print("❌ Failed to authenticate workspace-specific Fabric API client")
         sys.exit(1)
     
-    result = update_activator_definition(
+    result = setup_activator_definition(
         workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         activator_id=args.activator_id,
