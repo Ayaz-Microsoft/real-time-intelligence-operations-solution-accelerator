@@ -24,7 +24,7 @@ script_dir = Path(__file__).parent
 scripts_dir = script_dir.parent
 sys.path.insert(0, str(scripts_dir))
 
-from azure.identity import DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from azure.kusto.data import KustoClient, KustoConnectionStringBuilder, ClientRequestProperties
 from azure.kusto.data.exceptions import KustoServiceError
 
@@ -45,7 +45,7 @@ def create_kusto_client(cluster_uri) -> KustoClient:
     try:
         
         print(f"Connecting to Fabric cluster: {cluster_uri}")
-        credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
         kcsb = KustoConnectionStringBuilder.with_azure_token_credential(cluster_uri, credential)
         client = KustoClient(kcsb)
         print(f"✅ Connected to Fabric cluster")

@@ -8,7 +8,7 @@ It can automatically retrieve Event Hub access keys using Azure credentials,
 or use provided keys to set up connections.
 
 Features:
-- Automatically retrieve Event Hub access keys using DefaultAzureCredential
+- Automatically retrieve Event Hub access keys using AzureCliCredential
 - Create or update Event Hub connections in Microsoft Fabric
 - Support for both hub-level and namespace-level key retrieval
 
@@ -28,14 +28,14 @@ Environment Setup:
 
 import argparse
 import sys
-from azure.identity import DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from azure.mgmt.eventhub import EventHubManagementClient
 from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
 
 
 def get_event_hub_primary_key(namespace_name: str, hub_name: str, subscription_id: str, resource_group_name: str, authorization_rule_name: str = "RootManageSharedAccessKey") -> dict:
     """
-    Get the primary access key from an Azure Event Hub using DefaultAzureCredential.
+    Get the primary access key from an Azure Event Hub using AzureCliCredential.
     
     Args:
         namespace_name: Name of the Event Hub namespace
@@ -61,7 +61,7 @@ def get_event_hub_primary_key(namespace_name: str, hub_name: str, subscription_i
         print(f"🔑 Retrieving access keys for Event Hub: {hub_name} in namespace: {namespace_name}")
         
         # Initialize Azure credential
-        credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
         
         # Create Event Hub management client
         eventhub_client = EventHubManagementClient(credential, subscription_id)
@@ -117,7 +117,7 @@ def get_event_hub_namespace_primary_key(namespace_name: str, subscription_id: st
         print(f"🔑 Retrieving namespace access keys for: {namespace_name}")
         
         # Initialize Azure credential
-        credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
         
         # Create Event Hub management client
         eventhub_client = EventHubManagementClient(credential, subscription_id)

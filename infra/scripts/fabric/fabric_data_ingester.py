@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 import os
-from azure.identity import DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from azure.kusto.data import KustoConnectionStringBuilder, KustoClient
 from azure.kusto.data.exceptions import KustoServiceError
 from azure.kusto.ingest import QueuedIngestClient, IngestionProperties
@@ -10,7 +10,7 @@ import pandas as pd
 
 def create_kusto_client(cluster_uri: str):
     try:
-        credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
         kcsb = KustoConnectionStringBuilder.with_azure_token_credential(cluster_uri, credential)
         client = KustoClient(kcsb)
         return client
@@ -23,7 +23,7 @@ def create_kusto_client(cluster_uri: str):
 def create_ingestion_client(cluster_uri: str):
     try:
         print(f"Connecting to Fabric cluster: {cluster_uri}")
-        credential = DefaultAzureCredential()
+        credential = AzureCliCredential()
         
         # Create ingestion client using the ingestion endpoint
         # The ingestion URI is typically the cluster URI with 'ingest-' prefix

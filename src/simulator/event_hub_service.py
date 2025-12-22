@@ -4,8 +4,8 @@ import json
 from typing import Any
 
 try:
-    from azure.eventhub import EventData, EventHubProducerClient
-    from azure.identity import DefaultAzureCredential
+    from azure.eventhub import EventHubProducerClient, EventData
+    from azure.identity import AzureCliCredential
 except ImportError:
     print(
         "❌ Error: azure-eventhub and azure-identity packages are "
@@ -29,7 +29,7 @@ class EventHubService:
         """Initialize Event Hub service."""
         self.fully_qualified_namespace = fully_qualified_namespace
         self.event_hub_name = event_hub_name
-        self.credential = DefaultAzureCredential()
+        self.credential = AzureCliCredential()
 
     def send_event(self, data: Any) -> None:
         """Send an event to Event Hub."""

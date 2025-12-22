@@ -77,7 +77,7 @@ The script expects these CSV files in the data directory:
 
 ## Authentication
 
-Uses `DefaultAzureCredential` for authentication. Ensure you're authenticated via:
+Uses `AzureCliCredential` for authentication. Ensure you're authenticated via:
 - Azure CLI: `az login`
 - Managed Identity
 - Environment variables
