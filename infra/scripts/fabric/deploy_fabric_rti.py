@@ -365,6 +365,10 @@ def main():
     
     print_step(11, 11, "Updating Eventstream Definition", workspace_id=workspace_id, eventstream_id=eventstream_id, eventhouse_database_name=eventhouse_database_name)
     try:
+        # Create destination-friendly names (without underscores) for eventstream
+        eventhouse_destination_name = eventhouse_name.replace('_', '-')
+        activator_destination_name = activator_name.replace('_', '-')
+        
         eventstream_definition_result = update_eventstream_definition(
             workspace_client=workspace_client,
             workspace_id=workspace_id,
@@ -375,9 +379,9 @@ def main():
             eventhouse_table_name="events",
             eventhub_connection_id=eventhub_connection_id,
             source_name=event_hub_name,
-            eventhouse_name=eventhouse_name,
+            eventhouse_name=eventhouse_destination_name,
             stream_name=eventstream_name,
-            activator_name=activator_name,
+            activator_name=activator_destination_name,
             activator_id=activator_id
         )
         if eventstream_definition_result is None:
