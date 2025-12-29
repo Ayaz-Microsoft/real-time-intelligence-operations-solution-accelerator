@@ -52,25 +52,24 @@ import signal
 import sys
 import threading
 import time
-import sys
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import List, Dict, Optional
 
 # Add parent directory to Python path to allow imports from sibling directories
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from datetime import datetime, timezone
-from typing import List, Dict, Optional
-
 # Import our project classes
-from entities.event import Event
-from entities.asset import AssetType
-from simulator.event_hub_service import EventHubService
-from azd_env_loader import AZDEnvironmentLoader
+from entities.event import Event  # noqa: E402
+from entities.asset import AssetType  # noqa: E402
+from simulator.event_hub_service import EventHubService  # noqa: E402
+from azd_env_loader import AZDEnvironmentLoader  # noqa: E402
+
 
 class AssetSimulator:
     """Simulates events for a single manufacturing asset."""
-    
-    def __init__(self, asset_id: str, asset_name: str, asset_type_name: str, 
+
+    def __init__(self, asset_id: str, asset_name: str, asset_type_name: str,
                  products: List[Dict], event_hub_service: EventHubService, index: int):
         self.asset_id = asset_id
         self.asset_name = asset_name
@@ -116,7 +115,7 @@ class AssetSimulator:
                                                     batch_id=self.current_batch_id,
                                                     timestamp=datetime.now(timezone.utc),
                                                     anomaly=anomaly,
-                                                    variation_multiplier=random.uniform(2,3))
+                                                    variation_multiplier=random.uniform(2, 3))
 
         self.events_in_batch += 1
         return event
@@ -214,9 +213,9 @@ class EventSimulatorManager:
         except Exception as e:
             print(f"⚠️  Error loading products: {e} (will use default)")
         return products
-    
-    def create_simulators(self, assets: List[Dict], products: List[Dict], 
-                         event_hub_service: EventHubService):
+
+    def create_simulators(self, assets: List[Dict], products: List[Dict],
+                          event_hub_service: EventHubService):
         """Create asset simulators."""
         self.simulators = []
         for i, asset in enumerate(assets, 1):
@@ -245,8 +244,8 @@ class EventSimulatorManager:
         print(f"⏱️  Event interval: {interval_seconds} seconds")
         if max_runtime_seconds:
             print(f"⏰ Max runtime: {max_runtime_seconds} seconds")
-        print("="*60)
-        
+        print("=" * 60)
+
         # Start all simulators
         for simulator in self.simulators:
             simulator.start(interval_seconds)
@@ -289,12 +288,12 @@ class EventSimulatorManager:
                     
                 except (EOFError, KeyboardInterrupt):
                     break
-                except Exception as e:
+                except Exception:
                     # Silently handle command loop errors to not interrupt main simulation
                     time.sleep(0.1)
                     continue
-                        
-        except Exception as e:
+
+        except Exception:
             # Silently handle command loop errors to not interrupt main simulation
             pass
     
@@ -435,15 +434,15 @@ class EventSimulatorManager:
         total_anomalies = sum(s.anomaly_events_sent for s in self.simulators)
         total_normal = total_events - total_anomalies
         elapsed = (datetime.now() - self.start_time).total_seconds() if self.start_time else 0
-        
-        print("\n" + "="*60)
+
+        print("\n" + "=" * 60)
         print("📊 SIMULATION SUMMARY")
-        print("="*60)
+        print("=" * 60)
         print(f"Runtime: {elapsed:.1f} seconds")
         print(f"Total events sent: {total_events}")
         print(f"  Normal events: {total_normal}")
         print(f"  Anomaly events: {total_anomalies}")
-        print(f"  Anomaly rate: {total_anomalies/total_events*100:.1f}%" if total_events > 0 else "  Anomaly rate: 0%")
+        print(f"  Anomaly rate: {total_anomalies / total_events * 100:.1f}%" if total_events > 0 else "  Anomaly rate: 0%")
         print(f"Events per second: {total_events/elapsed:.2f}" if elapsed > 0 else "Events per second: 0")
         print(f"Active assets: {len(self.simulators)}")
         print("\nPer-asset summary:")
@@ -455,17 +454,17 @@ class EventSimulatorManager:
 
 
 def main():
-    """Main function."""    
+    """Main function."""
     parser = argparse.ArgumentParser(description='Manufacturing Event Simulator')
     parser.add_argument('--interval', type=float, default=5.0,
-                       help='Seconds between events per asset (default: 5.0)')
+                        help='Seconds between events per asset (default: 5.0)')
     parser.add_argument('--max-runtime', type=int, default=None,
-                       help='Maximum runtime in seconds (default: unlimited)')
+                        help='Maximum runtime in seconds (default: unlimited)')
     parser.add_argument('--assets-csv', type=str, default=None,
-                       help='Path to assets.csv file')
+                        help='Path to assets.csv file')
     parser.add_argument('--products-csv', type=str, default=None,
-                       help='Path to products.csv file')
-    
+                        help='Path to products.csv file')
+
     args = parser.parse_args()
 
     env_loader = AZDEnvironmentLoader(required=False, log_events=True)
@@ -500,7 +499,7 @@ def main():
         products_csv_path = (src_dir / products_csv_path).resolve()
     
     print("🏭 Manufacturing Event Simulator")
-    print("="*60)
+    print("=" * 60)
     print(f"Event Hub Namespace: {event_hub_namespace_fqdn}")
     print(f"Event Hub: {event_hub_name}")
     print(f"Assets CSV: {assets_csv_path}")
@@ -508,7 +507,7 @@ def main():
     print(f"Event Interval: {interval} seconds")
     if max_runtime:
         print(f"Max Runtime: {max_runtime} seconds")
-    print("="*60)
+    print("=" * 60)
     
     try:
         # Initialize Event Hub service

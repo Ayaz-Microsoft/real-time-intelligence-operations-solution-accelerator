@@ -1,9 +1,14 @@
+"""Event data model for manufacturing operations."""
+
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 
+
 @dataclass
 class Event:
+    """Represents a manufacturing event with sensor metrics."""
+
     Id: str
     AssetId: str
     ProductId: str
@@ -16,6 +21,7 @@ class Event:
     Timestamp: datetime
 
     def to_dict(self) -> dict:
+        """Convert event to dictionary representation."""
         return {
             "Id": self.Id,
             "AssetId": self.AssetId,
@@ -31,6 +37,7 @@ class Event:
 
     @staticmethod
     def get_table_schema() -> str:
+        """Get KQL table schema for events."""
         return """(
             Id: string,
             AssetId: string,
@@ -43,7 +50,3 @@ class Event:
             Speed: real,
             DefectProbability: real
         )"""
-
-
-    
-    
