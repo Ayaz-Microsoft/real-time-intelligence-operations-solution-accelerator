@@ -188,7 +188,7 @@ Select one of the following options to deploy the solution:
 
 1. Go to [Azure Cloud Shell](https://shell.azure.com)
 2. Ensure shell type is set to **Bash**
-3. Install Azure Developer CLI:
+3. Install Azure Developer CLI (needed only if CLI is not installed):
 
    ```bash
    curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
@@ -234,14 +234,20 @@ Select one of the following options to deploy the solution:
 
 3. Ensure shell type is set to Bash
 
-4. Clone the repository:
+4. Install Azure Developer CLI (needed only if CLI is not installed):
+
+   ```bash
+   curl -fsSL https://aka.ms/install-azd.sh | bash && exec bash
+   ```
+
+5. Clone the repository:
 
    ```bash
    git clone https://github.com/microsoft/real-time-intelligence-operations-solution-accelerator.git
    cd real-time-intelligence-operations-solution-accelerator
    ```
 
-5. Proceed to [Step 4: Deploy](#step-4-deploy-the-solution)
+6. Proceed to deployment: [Step 4: Deploy](#step-4-deploy-the-solution)
 
 ---
 
