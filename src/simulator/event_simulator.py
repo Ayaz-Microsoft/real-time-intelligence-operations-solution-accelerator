@@ -559,11 +559,21 @@ class EventSimulatorManager:
 
 def main():
     """Main function."""
-    parser = argparse.ArgumentParser(description='Manufacturing Event Simulator')
-    parser.add_argument('--interval', type=float, default=5.0,
-                        help='Seconds between events per asset (default: 5.0)')
-    parser.add_argument('--max-runtime', type=int, default=None,
-                        help='Maximum runtime in seconds (default: unlimited)')
+    parser = argparse.ArgumentParser(
+        description='Manufacturing Event Simulator'
+    )
+    parser.add_argument(
+        '--interval',
+        type=float,
+        default=5.0,
+        help='Seconds between events per asset (default: 5.0)'
+    )
+    parser.add_argument(
+        '--max-runtime',
+        type=int,
+        default=None,
+        help='Maximum runtime in seconds (default: unlimited)'
+    )
     parser.add_argument('--assets-csv', type=str, default=None,
                         help='Path to assets.csv file')
     parser.add_argument('--products-csv', type=str, default=None,
