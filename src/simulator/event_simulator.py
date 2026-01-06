@@ -17,8 +17,10 @@ Features:
 - Graceful shutdown on Ctrl+C
 
 Interactive Commands (available during runtime):
-- 'anomaly [#]' or 'a [#]' - Switch to anomaly mode (all assets or specific asset #)
-- 'normal [#]' or 'n [#]' - Switch to normal mode (all assets or specific asset #)
+- 'anomaly [#]' or 'a [#]' - Switch to anomaly mode
+  (all assets or specific asset #)
+- 'normal [#]' or 'n [#]' - Switch to normal mode
+  (all assets or specific asset #)
 - 'status' or 's' - Show current simulation status
 - 'stats' - Show detailed per-asset statistics
 - 'help' or 'h' - Show available commands
@@ -31,10 +33,13 @@ Environment Variables:
     AZURE_EVENT_HUB_NAMESPACE_HOSTNAME - Azure Event Hub namespace
         (e.g., myeventhub.servicebus.windows.net)
     AZURE_EVENT_HUB_NAME - Name of the Event Hub
-    ASSETS_CSV_PATH - Path to assets.csv file (default: infra/data/assets.csv)
-    PRODUCTS_CSV_PATH - Path to products.csv file (default: infra/data/products.csv)
+    ASSETS_CSV_PATH - Path to assets.csv file
+        (default: infra/data/assets.csv)
+    PRODUCTS_CSV_PATH - Path to products.csv file
+        (default: infra/data/products.csv)
     SIMULATION_INTERVAL - Seconds between events per asset (default: 5)
-    MAX_RUNTIME_SECONDS - Maximum runtime in seconds (default: unlimited)
+    MAX_RUNTIME_SECONDS - Maximum runtime in seconds
+        (default: unlimited)
 
 Example:
     python event_simulator.py --interval 2 --max-runtime 300
@@ -70,8 +75,11 @@ from azd_env_loader import AZDEnvironmentLoader  # noqa: E402
 class AssetSimulator:
     """Simulates events for a single manufacturing asset."""
 
-    def __init__(self, asset_id: str, asset_name: str, asset_type_name: str,
-                 products: List[Dict], event_hub_service: EventHubService, index: int):
+    def __init__(
+        self, asset_id: str, asset_name: str, asset_type_name: str,
+        products: List[Dict], event_hub_service: EventHubService,
+        index: int
+    ):
         self.asset_id = asset_id
         self.asset_name = asset_name
         self.asset_type_name = asset_type_name
@@ -130,12 +138,14 @@ class AssetSimulator:
             
         self.is_running = True
         self.thread = threading.Thread(
-            target=self._simulation_loop,
-            args=(interval_seconds,)
+            target=self._simulation_loop, args=(interval_seconds,)
         )
         self.thread.daemon = True
         self.thread.start()
-        print(f"🚀 Started simulation for {self.asset_name} (ID: {self.asset_id})")
+        print(
+            f"🚀 Started simulation for {self.asset_name} "
+            f"(ID: {self.asset_id})"
+        )
     
     def stop(self):
         """Stop the event simulation for this asset."""
@@ -220,14 +230,16 @@ class EventSimulatorManager:
         except FileNotFoundError:
             print(
                 f"⚠️  Products file not found: {products_csv_path} "
-                "(will use default)"
+                f"(will use default)"
             )
         except Exception as e:
             print(f"⚠️  Error loading products: {e} (will use default)")
         return products
 
-    def create_simulators(self, assets: List[Dict], products: List[Dict],
-                          event_hub_service: EventHubService):
+    def create_simulators(
+        self, assets: List[Dict], products: List[Dict],
+        event_hub_service: EventHubService
+    ):
         """Create asset simulators."""
         self.simulators = []
         for i, asset in enumerate(assets, 1):
@@ -240,11 +252,12 @@ class EventSimulatorManager:
                 index=i
             )
             self.simulators.append(simulator)
-        print(f"🏭 Created simulators for {len(self.simulators)} assets")
+        print(
+            f"🏭 Created simulators for {len(self.simulators)} assets"
+        )
     
     def start_all_simulators(
-        self,
-        interval_seconds: float,
+        self, interval_seconds: float,
         max_runtime_seconds: Optional[int] = None
     ):
         """Start all asset simulators."""
@@ -285,11 +298,11 @@ class EventSimulatorManager:
         print(f"\n🎛️  Interactive Commands Available:")
         print(
             f"   Type 'anomaly [#]' to switch to anomaly mode "
-            "(all assets or specific asset #)"
+            f"(all assets or specific asset #)"
         )
         print(
             f"   Type 'normal [#]' to switch to normal mode "
-            "(all assets or specific asset #)"
+            f"(all assets or specific asset #)"
         )
         print(f"   Type 'status' to show current status")
         print(f"   Type 'stats' to show detailed statistics")
@@ -304,9 +317,8 @@ class EventSimulatorManager:
                 try:
                     # Simple blocking input - works on all platforms
                     print(
-                        "\n💬 Enter command (type 'help' for options): ",
-                        end='',
-                        flush=True
+                        f"\n💬 Enter command (type 'help' for options): ",
+                        end='', flush=True
                     )
                     command = input().strip().lower()
                     if command:  # Only process non-empty commands
@@ -315,8 +327,8 @@ class EventSimulatorManager:
                 except (EOFError, KeyboardInterrupt):
                     break
                 except Exception:
-                    # Silently handle command loop errors
-                    # to not interrupt main simulation
+                    # Silently handle command loop errors to not interrupt
+                    # main simulation
                     time.sleep(0.1)
                     continue
 
@@ -330,10 +342,18 @@ class EventSimulatorManager:
         cmd = parts[0] if parts else ''
         
         if cmd in ['anomaly', 'a']:
-            asset_num = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+            asset_num = (
+                int(parts[1])
+                if len(parts) > 1 and parts[1].isdigit()
+                else None
+            )
             self._switch_to_anomaly_mode(asset_num)
         elif cmd in ['normal', 'n']:
-            asset_num = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else None
+            asset_num = (
+                int(parts[1])
+                if len(parts) > 1 and parts[1].isdigit()
+                else None
+            )
             self._switch_to_normal_mode(asset_num)
         elif cmd in ['status', 's']:
             self._show_status()
@@ -347,7 +367,7 @@ class EventSimulatorManager:
         elif command.strip():
             print(
                 f"❓ Unknown command: '{command}'. "
-                "Type 'help' for available commands."
+                f"Type 'help' for available commands."
             )
     
     def _switch_to_anomaly_mode(self, asset_num: Optional[int] = None):
@@ -361,7 +381,10 @@ class EventSimulatorManager:
                     f"({simulator.asset_name}) TO ANOMALY MODE"
                 )
             else:
-                print(f"❌ Invalid asset number. Valid range: 1-{len(self.simulators)}")
+                print(
+                    f"❌ Invalid asset number. "
+                    f"Valid range: 1-{len(self.simulators)}"
+                )
         else:
             for simulator in self.simulators:
                 simulator.anomaly_mode = True
@@ -378,7 +401,10 @@ class EventSimulatorManager:
                     f"({simulator.asset_name}) TO NORMAL MODE"
                 )
             else:
-                print(f"❌ Invalid asset number. Valid range: 1-{len(self.simulators)}")
+                print(
+                    f"❌ Invalid asset number. "
+                    f"Valid range: 1-{len(self.simulators)}"
+                )
         else:
             for simulator in self.simulators:
                 simulator.anomaly_mode = False
@@ -388,8 +414,7 @@ class EventSimulatorManager:
         """Show current simulation status."""
         elapsed = (
             (datetime.now() - self.start_time).total_seconds()
-            if self.start_time
-            else 0
+            if self.start_time else 0
         )
         total_events = sum(s.events_sent for s in self.simulators)
         total_anomalies = sum(s.anomaly_events_sent for s in self.simulators)
@@ -409,8 +434,7 @@ class EventSimulatorManager:
         )
         print(
             f"   Events/sec: {total_events/elapsed:.2f}"
-            if elapsed > 0
-            else "   Events/sec: 0"
+            if elapsed > 0 else "   Events/sec: 0"
         )
         
         if anomaly_assets:
@@ -422,8 +446,8 @@ class EventSimulatorManager:
         """Show detailed per-asset statistics."""
         print(f"\n📈 DETAILED STATISTICS")
         print(
-            f"{'#':<3} {'Asset Name':<20} {'Mode':<8} "
-            f"{'Total':<8} {'Normal':<8} {'Anomaly':<8} {'Anomaly %':<10}"
+            f"{'#':<3} {'Asset Name':<20} {'Mode':<8} {'Total':<8} "
+            f"{'Normal':<8} {'Anomaly':<8} {'Anomaly %':<10}"
         )
         print("-" * 75)
         
@@ -436,20 +460,20 @@ class EventSimulatorManager:
             
             print(
                 f"{simulator.index:<3} {simulator.asset_name:<20} "
-                f"{mode:<8} {total:<8} {normal:<8} "
-                f"{anomalies:<8} {anomaly_pct:<10.1f}%"
+                f"{mode:<8} {total:<8} {normal:<8} {anomalies:<8} "
+                f"{anomaly_pct:<10.1f}%"
             )
     
     def _show_help(self):
         """Show help for available commands."""
         print(f"\n🎛️  AVAILABLE COMMANDS:")
         print(
-            f"   anomaly [#], a [#]  - "
-            "Switch to anomaly mode (all or specific asset)"
+            f"   anomaly [#], a [#]  - Switch to anomaly mode "
+            f"(all or specific asset)"
         )
         print(
-            f"   normal [#], n [#]   - "
-            "Switch to normal mode (all or specific asset)"
+            f"   normal [#], n [#]   - Switch to normal mode "
+            f"(all or specific asset)"
         )
         print(f"   status, s           - Show current simulation status")
         print(f"   stats               - Show detailed per-asset statistics")
@@ -491,12 +515,13 @@ class EventSimulatorManager:
         
         # Print summary
         total_events = sum(s.events_sent for s in self.simulators)
-        total_anomalies = sum(s.anomaly_events_sent for s in self.simulators)
+        total_anomalies = sum(
+            s.anomaly_events_sent for s in self.simulators
+        )
         total_normal = total_events - total_anomalies
         elapsed = (
             (datetime.now() - self.start_time).total_seconds()
-            if self.start_time
-            else 0
+            if self.start_time else 0
         )
 
         print("\n" + "=" * 60)
@@ -508,22 +533,21 @@ class EventSimulatorManager:
         print(f"  Anomaly events: {total_anomalies}")
         print(
             f"  Anomaly rate: {total_anomalies / total_events * 100:.1f}%"
-            if total_events > 0
-            else "  Anomaly rate: 0%"
+            if total_events > 0 else "  Anomaly rate: 0%"
         )
         print(
             f"Events per second: {total_events/elapsed:.2f}"
-            if elapsed > 0
-            else "Events per second: 0"
+            if elapsed > 0 else "Events per second: 0"
         )
         print(f"Active assets: {len(self.simulators)}")
         print("\nPer-asset summary:")
         for simulator in self.simulators:
-            normal_events = simulator.events_sent - simulator.anomaly_events_sent
+            normal_events = (
+                simulator.events_sent - simulator.anomaly_events_sent
+            )
             anomaly_pct = (
                 (simulator.anomaly_events_sent / simulator.events_sent * 100)
-                if simulator.events_sent > 0
-                else 0
+                if simulator.events_sent > 0 else 0
             )
             print(
                 f"  {simulator.asset_name}: {simulator.events_sent} total "
@@ -564,19 +588,25 @@ def main():
     data_dir = (src_dir / '..' / 'infra' / 'data').resolve()
     
     # Get configuration from environment variables or arguments
-    event_hub_namespace_fqdn = os.getenv('AZURE_EVENT_HUB_NAMESPACE_HOSTNAME')
+    event_hub_namespace_fqdn = os.getenv(
+        'AZURE_EVENT_HUB_NAMESPACE_HOSTNAME'
+    )
     event_hub_name = os.getenv('AZURE_EVENT_HUB_NAME')
-    assets_csv_path = args.assets_csv or os.getenv(
-        'ASSETS_CSV_PATH', data_dir / 'assets.csv'
+    assets_csv_path = (
+        args.assets_csv or
+        os.getenv('ASSETS_CSV_PATH', data_dir / 'assets.csv')
     )
-    products_csv_path = args.products_csv or os.getenv(
-        'PRODUCTS_CSV_PATH', data_dir / 'products.csv'
+    products_csv_path = (
+        args.products_csv or
+        os.getenv('PRODUCTS_CSV_PATH', data_dir / 'products.csv')
     )
-    interval = args.interval or float(os.getenv('SIMULATION_INTERVAL', '5.0'))
-    max_runtime = args.max_runtime or (
-        int(os.getenv('MAX_RUNTIME_SECONDS'))
-        if os.getenv('MAX_RUNTIME_SECONDS')
-        else None
+    interval = args.interval or float(
+        os.getenv('SIMULATION_INTERVAL', '5.0')
+    )
+    max_runtime = (
+        args.max_runtime or
+        (int(os.getenv('MAX_RUNTIME_SECONDS'))
+         if os.getenv('MAX_RUNTIME_SECONDS') else None)
     )
 
     # Validate required configuration
@@ -587,17 +617,17 @@ def main():
         )
         print(
             "Set it using: export "
-            "AZURE_EVENT_HUB_NAMESPACE_HOSTNAME="
-            "'your_namespace.servicebus.windows.net' "
-            "or in Powershell: "
-            "$env:AZURE_EVENT_HUB_NAMESPACE_HOSTNAME="
-            "'your_namespace.servicebus.windows.net'"
+            "AZURE_EVENT_HUB_NAMESPACE_HOSTNAME='"
+            "your_namespace.servicebus.windows.net' or in Powershell: "
+            "$env:AZURE_EVENT_HUB_NAMESPACE_HOSTNAME='"
+            "your_namespace.servicebus.windows.net'"
         )
         sys.exit(1)
     
     if not event_hub_name:
         print(
-            "❌ ERROR: AZURE_EVENT_HUB_NAME environment variable is required"
+            "❌ ERROR: AZURE_EVENT_HUB_NAME "
+            "environment variable is required"
         )
         print(
             "Set it using: export AZURE_EVENT_HUB_NAME='your_event_hub_name' "
