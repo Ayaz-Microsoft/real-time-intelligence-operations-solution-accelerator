@@ -369,7 +369,7 @@ Examples:
         )
         sys.exit(1)
     
-    result = update_activator_definition(
+    result = setup_activator_definition(
         workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         activator_id=args.activator_id,

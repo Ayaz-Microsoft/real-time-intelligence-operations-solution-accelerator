@@ -16,8 +16,11 @@ Functions executed in order:
 7. setup_real_time_dashboard - Create real-time dashboard in Fabric
 8. create_eventstream - Create Eventstream (empty)
 9. create_activator - Create Activator (empty)
-10. update_activator_definition - Configure Activator (Reflex) for real-time alerts
-11. update_eventstream_definition - Configure Eventstream with Event Hub to Eventhouse flow
+10. setup_activator_definition - Configure Activator (Reflex) for real-time alerts
+11. setup_eventstream_definition - Configure Eventstream with Event Hub to Eventhouse flow
+13. setup_folder - Create folder for organizing environment and data agent
+14. setup_environment - Set up Fabric Environment in the created folder
+15. setup_data_agent - Create and configure Data Agent (Preview) with notebook in the folder
 
 Usage:
     python deploy_fabric_rti.py
@@ -45,6 +48,10 @@ Optional Environment Variables (custom configuration):
     FABRIC_EVENTSTREAM_NAME - Custom name for the Eventstream (defaults to "rti_eventstream_{suffix}")
     FABRIC_ACTIVATOR_NAME - Custom name for the Activator (defaults to "rti_activator_{suffix}")
     FABRIC_ACTIVATOR_ALERTS_EMAIL - Email address for activator alerts (defaults to "alerts@contoso.com")
+    FABRIC_ENVIRONMENT_NAME - Custom name for the Environment (defaults to "rti_environment_{suffix}")
+    FABRIC_DATA_AGENT_NAME - Custom name for the Data Agent (defaults to "rti_dataagent_{suffix}")
+    FABRIC_NOTEBOOK_NAME - Custom name for the Data Agent configuration notebook (defaults to "rti_notebook_{suffix}")
+    FABRIC_FOLDER_NAME - Custom name for the folder containing environment and data agent (defaults to "rti_folder_{suffix}")
 """
 
 import os
@@ -66,8 +73,11 @@ from fabric_eventhub import setup_eventhub_connection
 from fabric_real_time_dashboard import setup_real_time_dashboard
 from fabric_eventstream import create_eventstream
 from fabric_activator import create_activator
-from fabric_eventstream_definition import update_eventstream_definition
-from fabric_activator_definition import update_activator_definition
+from fabric_eventstream_definition import setup_eventstream_definition
+from fabric_activator_definition import setup_activator_definition
+from fabric_folder import setup_folder
+from fabric_environment import setup_environment
+from fabric_data_agent import setup_data_agent
 from fabric_common_utils import get_required_env_var, print_step, print_steps_summary
 
 def main():
@@ -93,6 +103,10 @@ def main():
     eventstream_name = os.getenv("FABRIC_EVENTSTREAM_NAME", f"rti_eventstream_{solution_suffix}")
     activator_name = os.getenv("FABRIC_ACTIVATOR_NAME", f"rti_activator_{solution_suffix}")
     activator_alerts_email = os.getenv("FABRIC_ACTIVATOR_ALERTS_EMAIL", "alerts@contoso.com")
+    data_agent_name = os.getenv("FABRIC_DATA_AGENT_NAME", f"rti_dataagent_{solution_suffix}")
+    folder_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME", f"rti_dataagentconfig_{solution_suffix}")
+    environment_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME", f"rti_environment_{solution_suffix}")
+    notebook_name = os.getenv("FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME", f"rti_notebook_{solution_suffix}")
     
     # Show initialization summary
     print(f"🏭 {solution_name} Initialization")
@@ -104,6 +118,9 @@ def main():
     print(f"Event Hub Connection Name: {event_hub_connection_name}")
     print(f"Event Hub Namespace Name: {event_hub_namespace_name}")
     print(f"Event Hub Name: {event_hub_name}")
+    print(f"Environment Name: {environment_name}")
+    print(f"Data Agent Name: {data_agent_name}")
+    print(f"Folder Name: {folder_name}")
     print(f"Activator Name: {activator_name}")
     print(f"Activator Alerts Email: {activator_alerts_email}")
     print(f"Solution Suffix: {solution_suffix}")
@@ -121,7 +138,7 @@ def main():
     executed_steps = []
     
     # Step 1: Setup workspace
-    print_step(1, 11, "Setting up Fabric workspace and capacity assignment", capacity_name=capacity_name, workspace_name=workspace_name)
+    print_step(1, 14, "Setting up Fabric workspace and capacity assignment", capacity_name=capacity_name, workspace_name=workspace_name)
     try:
         workspace_id = setup_workspace(
             fabric_client=fabric_client,
@@ -172,7 +189,7 @@ def main():
     print("✅ Workspace-specific authentication successful")
     
     # Step 2: Setup workspace administrators
-    print_step(2, 11, "Setting up Fabric workspace administrators", workspace_id=workspace_id, admin_list=workspace_administrators or "None")
+    print_step(2, 14, "Setting up Fabric workspace administrators", workspace_id=workspace_id, admin_list=workspace_administrators or "None")
     
     try:
         administrators_result = setup_workspace_administrators(
@@ -188,9 +205,9 @@ def main():
         print(f"❌ Exception while executing setup_workspace_administrators: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
-    
+
     # Step 3: Setup eventhouse
-    print_step(3, 11, "Setting up Fabric Eventhouse", eventhouse_name=eventhouse_name, workspace_id=workspace_id, database_name=eventhouse_database_name)
+    print_step(3, 14, "Setting up Fabric Eventhouse", eventhouse_name=eventhouse_name, workspace_id=workspace_id, database_name=eventhouse_database_name)
     try:
         eventhouse_result = setup_eventhouse(
             workspace_client=workspace_client,
@@ -210,8 +227,8 @@ def main():
     kusto_cluster_uri = eventhouse_result.get('properties')['queryServiceUri']
     eventhouse_database_id = eventhouse_result.get('properties').get('databasesItemIds')[0]
     
-    # Step 4: Setup database
-    print_step(4, 11, "Setting up Fabric database and table schemas", cluster_uri=kusto_cluster_uri, database_name=eventhouse_database_name)
+    # Step 5: Setup database
+    print_step(4, 14, "Setting up Fabric database and table schemas", cluster_uri=kusto_cluster_uri, database_name=eventhouse_database_name)
     try:
         result = setup_fabric_database(
             cluster_uri=kusto_cluster_uri,
@@ -227,9 +244,9 @@ def main():
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
     
-    # Step 5: Load data
+    # Step 6: Load data
     data_path = os.path.join(repo_dir, "infra", "data")
-    print_step(5, 11, "Loading sample data into Fabric database", cluster_uri=kusto_cluster_uri, database_name=eventhouse_database_name, data_path=data_path)
+    print_step(5, 14, "Loading sample data into Fabric database", cluster_uri=kusto_cluster_uri, database_name=eventhouse_database_name, data_path=data_path)
     try:
         result = load_data_to_fabric(
             cluster_uri=kusto_cluster_uri,
@@ -247,9 +264,9 @@ def main():
         print(f"❌ Exception while executing load_data_to_fabric: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
-    
+
     # Step 6: Setup Event Hub connection
-    print_step(6, 11, "Setting up Event Hub connection", connection_name=event_hub_connection_name, namespace_name=event_hub_namespace_name, event_hub_name=event_hub_name)
+    print_step(6, 14, "Setting up Event Hub connection", connection_name=event_hub_connection_name, namespace_name=event_hub_namespace_name, event_hub_name=event_hub_name)
     try:
         eventhub_connection_result = setup_eventhub_connection(
             fabric_client=fabric_client,
@@ -273,11 +290,11 @@ def main():
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
-    # Step 7: Setup dashboard
+    # Step 9: Setup dashboard
     # Build dashboard file path relative to repository root
-    rti_dashboard_file_path = os.path.join(repo_dir, "src", "realTimeDashboard", "RealTimeDashboard.json")
+    rti_dashboard_file_path = os.path.join(repo_dir, "src", "definitions", "realTimeDashboard", "RealTimeDashboard.json")
     
-    print_step(7, 11, "Setting up Real-time Dashboard", workspace_id=workspace_id, dashboard_title=dashboard_title, cluster_uri=kusto_cluster_uri)
+    print_step(7, 14, "Setting up Real-time Dashboard", workspace_id=workspace_id, dashboard_title=dashboard_title, cluster_uri=kusto_cluster_uri)
     try:
         dashboard_result = setup_real_time_dashboard(
             workspace_client=workspace_client,
@@ -297,8 +314,8 @@ def main():
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
-    # Step 8: Create eventstream
-    print_step(8, 11, "Creating Eventstream", workspace_id=workspace_id, eventstream_name=eventstream_name)
+    # Step 10: Create eventstream
+    print_step(8, 14, "Creating Eventstream", workspace_id=workspace_id, eventstream_name=eventstream_name)
     try:
         eventstream_result = create_eventstream(
             workspace_client=workspace_client,
@@ -315,8 +332,8 @@ def main():
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
-    # Step 9: Create activator
-    print_step(9, 11, "Creating Activator", workspace_id=workspace_id, activator_name=activator_name)
+    # Step 11: Create activator
+    print_step(9, 14, "Creating Activator", workspace_id=workspace_id, activator_name=activator_name)
     try:
         activator_result = create_activator(
             workspace_client=workspace_client,
@@ -334,13 +351,13 @@ def main():
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
-    # Step 10: Update activator definition
+    # Step 12: Update activator definition
     # Build activator file path relative to repository root
-    activator_file_path = os.path.join(repo_dir, "src", "activator", "ReflexEntities.json")
+    activator_file_path = os.path.join(repo_dir, "src", "definitions", "activator", "ReflexEntities.json")
     
-    print_step(10, 11, "Updating Activator Definition", workspace_id=workspace_id, activator_id=activator_id, eventstream_name=eventstream_name)
+    print_step(10, 14, "Updating Activator Definition", workspace_id=workspace_id, activator_id=activator_id, eventstream_name=eventstream_name)
     try:
-        activator_definition_result = update_activator_definition(
+        activator_definition_result = setup_activator_definition(
             workspace_client=workspace_client,
             workspace_id=workspace_id,
             activator_id=activator_id,
@@ -352,24 +369,24 @@ def main():
         if activator_definition_result is None:
             print_steps_summary(solution_name, solution_suffix, executed_steps, [])
             sys.exit(1)
-        print(f"✅ Successfully completed: update_activator_definition")
-        executed_steps.append("update_activator_definition")
+        print(f"✅ Successfully completed: setup_activator_definition")
+        executed_steps.append("setup_activator_definition")
     except Exception as e:
-        print(f"❌ Exception while executing update_activator_definition: {e}")
+        print(f"❌ Exception while executing setup_activator_definition: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
 
-    # Step 11: Update eventstream definition
+    # Step 13: Update eventstream definition
     # Build eventstream file path relative to repository root
-    eventstream_file_path = os.path.join(repo_dir, "src", "eventstream", "eventstream.json")
+    eventstream_file_path = os.path.join(repo_dir, "src", "definitions", "eventstream", "eventstream.json")
     
-    print_step(11, 11, "Updating Eventstream Definition", workspace_id=workspace_id, eventstream_id=eventstream_id, eventhouse_database_name=eventhouse_database_name)
+    print_step(11, 14, "Updating Eventstream Definition", workspace_id=workspace_id, eventstream_id=eventstream_id, eventhouse_database_name=eventhouse_database_name)
     try:
         # Create destination-friendly names (without underscores) for eventstream
         eventhouse_destination_name = eventhouse_name.replace('_', '-')
         activator_destination_name = activator_name.replace('_', '-')
         
-        eventstream_definition_result = update_eventstream_definition(
+        eventstream_definition_result = setup_eventstream_definition(
             workspace_client=workspace_client,
             workspace_id=workspace_id,
             eventstream_id=eventstream_result.get('id') if eventstream_result else None,
@@ -387,12 +404,90 @@ def main():
         if eventstream_definition_result is None:
             print_steps_summary(solution_name, solution_suffix, executed_steps, [])
             sys.exit(1)
-        print(f"✅ Successfully completed: update_eventstream_definition")
-        executed_steps.append("update_eventstream_definition")
+        print(f"✅ Successfully completed: setup_eventstream_definition")
+        executed_steps.append("setup_eventstream_definition")
     except Exception as e:
-        print(f"❌ Exception while executing update_eventstream_definition: {e}")
+        print(f"❌ Exception while executing setup_eventstream_definition: {e}")
         print_steps_summary(solution_name, solution_suffix, executed_steps, [])
         sys.exit(1)
+    
+    # Step 12: Setup folder
+    print_step(12, 14, "Setting up Fabric folder", folder_name=folder_name, workspace_id=workspace_id)
+    try:
+        folder_result = setup_folder(
+            workspace_client=workspace_client,
+            folder_name=folder_name
+        )
+        if folder_result is None:
+            raise Exception("setup_folder returned None")
+        folder_id = folder_result.get('id')
+        print(f"✅ Successfully completed: setup_folder")
+        executed_steps.append("setup_folder")
+    except Exception as e:
+        print(f"❌ Exception while executing setup_folder: {e}")
+        print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+        sys.exit(1)
+    
+    # Step 13: Setup environment
+    environment_yml_path = os.path.join(repo_dir, "src", "definitions", "environment", "Libraries", "PublicLibraries", "environment.yml")
+    print_step(13, 14, "Setting up Fabric environment", environment_name=environment_name, workspace_id=workspace_id, environment_yml_path=environment_yml_path, folder_id=folder_id)
+    try:
+        environment_result = setup_environment(
+            workspace_client=workspace_client,
+            environment_name=environment_name,
+            description=f"Environment for {solution_name}",
+            environment_yml_path=environment_yml_path,
+            folder_id=folder_id
+        )
+        if environment_result is None:
+            print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+            sys.exit(1)
+        print(f"✅ Successfully completed: setup_environment")
+        executed_steps.append("setup_environment")
+        environment_id = environment_result.get('id')
+    except Exception as e:
+        print(f"❌ Exception while executing setup_environment: {e}")
+        print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+        sys.exit(1)
+
+    # Step 13: Create data agent (Preview Feature)
+    print(f"\n⚠️  PREVIEW FEATURE WARNING:")
+    print(f"   Microsoft Fabric Data Agent creation is in preview and may have limitations.")
+    print(f"   If this step fails, you can complete setup manually using: docs/FabricDataAgentGuide.md")
+    print_step(14, 14, "Creating and configuring Data Agent (Preview)", data_agent_name=data_agent_name, workspace_id=workspace_id, environment_id=environment_id, folder_id=folder_id)
+    try:
+        data_agent_result = setup_data_agent(
+            workspace_client=workspace_client,
+            data_agent_name=data_agent_name,
+            kusto_db_id=eventhouse_database_id,
+            kusto_db_workspace_id=workspace_id,
+            environment_id=environment_id,
+            notebook_name=notebook_name,
+            notebook_folder_id=folder_id
+        )
+        if data_agent_result is None:
+            print(f"⚠️ Failed to create data agent: Unknown error")
+            print(f"📄 To complete data agent setup manually:")
+            print(f"   1. Open Microsoft Fabric portal: https://app.fabric.microsoft.com")
+            print(f"   2. Navigate to your workspace: {workspace_name}")
+            print(f"   3. Create a new Data Agent item with name: {data_agent_name}")
+            print(f"   4. Configure the agent using the KQL database: {eventhouse_database_name}")
+            print(f"\n📝 For detailed instructions, see: docs/FabricDataAgentGuide.md")
+            print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+            sys.exit(0)
+        print(f"✅ Successfully completed: setup_data_agent")
+        executed_steps.append("setup_data_agent")
+        data_agent_id = data_agent_result.get('id')
+    except Exception as e:
+        print(f"⚠️ Exception while executing setup_data_agent: {e}")
+        print(f"📄 To complete data agent setup manually:")
+        print(f"   1. Open Microsoft Fabric portal: https://app.fabric.microsoft.com")
+        print(f"   2. Navigate to your workspace: {workspace_name}")
+        print(f"   3. Create a new Data Agent item with name: {data_agent_name}")
+        print(f"   4. Configure the agent using the KQL database: {eventhouse_database_name}")
+        print(f"\n📝 For detailed instructions, see: docs/FabricDataAgentGuide.md")
+        print_steps_summary(solution_name, solution_suffix, executed_steps, [])
+        sys.exit(0)
     
     # Success!
     print(f"\n🎉 {solution_name} data initialization completed successfully!")
@@ -407,15 +502,20 @@ def main():
     eventhub_connection_id = eventhub_connection_result.get('id') if eventhub_connection_result else None
     eventhouse_id = eventhouse_result.get('id') if eventhouse_result else None
     
-    workspace_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}?experience=fabric-developer"
+    # Azure
+    eventhub_namespace_url = f"https://portal.azure.com/#@/resource/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/Microsoft.EventHub/namespaces/{event_hub_namespace_name}/overview"
     capacity_url = f"https://portal.azure.com/#@/resource/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/Microsoft.Fabric/capacities/{capacity_name}/overview"
+    
+    # Fabric
+    workspace_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}?experience=fabric-developer"
     eventhouse_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/eventhouses/{eventhouse_id}?experience=fabric-developer" if eventhouse_id else None
     kql_database_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/databases/{eventhouse_database_id}?experience=fabric-developer" if eventhouse_database_id else None
     dashboard_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/kustodashboards/{dashboard_id}?experience=fabric-developer" if dashboard_id else None
     eventstream_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/eventstreams/{eventstream_id}?experience=fabric-developer" if eventstream_id else None
     activator_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/reflexes/{activator_id}?experience=fabric-developer" if activator_id else None
     eventhub_connection_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/gateways?experience=fabric-developer"
-    eventhub_namespace_url = f"https://portal.azure.com/#@/resource/subscriptions/{subscription_id}/resourceGroups/{resource_group_name}/providers/Microsoft.EventHub/namespaces/{event_hub_namespace_name}/overview"
+    environment_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/sparkenvironments/{environment_id}?experience=fabric-developer" if environment_id else None
+    data_agent_url = f"https://app.fabric.microsoft.com/groups/{workspace_id}/aiskills/{data_agent_id}?experience=fabric-developer" if data_agent_id else None
 
     print(f"\n" + "="*60)
     print(f"🎉 {solution_name.upper()} DEPLOYMENT COMPLETE!")
@@ -423,23 +523,28 @@ def main():
     print(f"📅 Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"🏷️  Solution: {solution_suffix}")
     
-    print(f"\n📋 DEPLOYED RESOURCES:")
+    print(f"\n✅ DEPLOYED RESOURCES:")
     print(f"   🏠 Workspace:    {workspace_name}")
-    print(f"   🏛️  Eventhouse:   {eventhouse_name}")
-    print(f"   🗄️  Database:     {eventhouse_database_name} (✅ Data loaded)")
+    print(f"   📁 Folder:       {folder_name}")
+    print(f"   🌍 Environment:  {environment_name}")
+    print(f"   🤖 Data Agent:   {data_agent_name} (✅ Configured)")
+    print(f"   🏛️ Eventhouse:   {eventhouse_name}")
+    print(f"   🗄️ Database:     {eventhouse_database_name} (✅ Data loaded)")
     print(f"   📊 Dashboard:    {dashboard_title}")
     print(f"   🌊 Eventstream:  {eventstream_name}")
-    print(f"   � Activator:    {activator_name}")
-    print(f"   �🔗 Connection:   {event_hub_connection_name}")
+    print(f"   🚨 Activator:    {activator_name}")
+    print(f"   🔗 Connection:   {event_hub_connection_name}")
     
-    print(f"\n🏢 AZURE RESOURCES:")
-    print(f"   � Capacity:     {capacity_url}")
+    print(f"\n☁️ AZURE URLS:")
+    print(f"   ⚡ Capacity:     {capacity_url}")
     print(f"   📡 Event Hub:    {eventhub_namespace_url}")
     
-    print(f"\n🔧 FABRIC RESOURCES:")
+    print(f"\n📦 FABRIC URLS:")
     print(f"   🏠 Workspace:    {workspace_url}")
-    print(f"   🏛️  Eventhouse:   {eventhouse_url}")
-    print(f"   🗄️  Database:     {kql_database_url}")
+    print(f"   🌍 Environment:  {environment_url}")
+    print(f"   🤖 Data Agent:   {data_agent_url}")
+    print(f"   🏛️ Eventhouse:   {eventhouse_url}")
+    print(f"   🗄️ Database:     {kql_database_url}")
     print(f"   📊 Dashboard:    {dashboard_url}")
     print(f"   🌊 Eventstream:  {eventstream_url}")
     print(f"   🚨 Activator:    {activator_url}")

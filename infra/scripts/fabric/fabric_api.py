@@ -25,6 +25,7 @@ import time
 import json
 import base64
 import requests
+import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
 from azure.identity import AzureCliCredential, DefaultAzureCredential
@@ -1259,6 +1260,132 @@ class FabricWorkspaceApiClient(FabricApiClient):
         
         self._log(f"No role assignment found for principal {principal_id}")
         return None
+
+    # Folder operations
+    def get_folders(self) -> List[Dict[str, Any]]:
+        """
+        Get all folders in the workspace.
+        
+        Returns:
+            List of folder objects containing:
+            - id: Folder ID (GUID)
+            - displayName: Folder display name
+            - parentFolderId: Parent folder ID (None for root folders)
+            - workspaceId: Workspace ID
+            
+        Raises:
+            FabricApiError: If request fails
+            
+        Required Scopes:
+            Workspace.Read.All or Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Getting folders from workspace {self.workspace_id}")
+            response = self._make_request(f"workspaces/{self.workspace_id}/folders")
+            
+            if response.status_code == 200:
+                folders = response.json().get('value', [])
+                self._log(f"Found {len(folders)} folder(s)")
+                return folders
+            else:
+                error_msg = f"Failed to get folders: HTTP {response.status_code}"
+                self._log(error_msg, level="error")
+                raise FabricApiError(error_msg)
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error getting folders: {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
+    
+    def create_folder(self, display_name: str, parent_folder_id: Optional[str] = None) -> str:
+        """
+        Create a folder in the workspace.
+        
+        Args:
+            display_name: Folder display name
+            parent_folder_id: Optional parent folder ID (None for root folder)
+            
+        Returns:
+            Created folder ID
+            
+        Raises:
+            FabricApiError: If creation fails
+            
+        Required Scopes:
+            Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Creating folder '{display_name}' in workspace {self.workspace_id}")
+            
+            data = {"displayName": display_name}
+            if parent_folder_id:
+                data["parentFolderId"] = parent_folder_id
+                self._log(f"Creating folder under parent folder {parent_folder_id}")
+            else:
+                self._log("Creating folder in workspace root")
+            
+            response = self._make_request(
+                f"workspaces/{self.workspace_id}/folders", 
+                method="POST", 
+                data=data
+            )
+            
+            if response.status_code in [200, 201]:
+                folder_id = response.json()['id']
+                self._log(f"Successfully created folder '{display_name}' with ID: {folder_id}")
+                return folder_id
+            else:
+                error_msg = f"Failed to create folder: HTTP {response.status_code}"
+                self._log(error_msg, level="error")
+                raise FabricApiError(error_msg)
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error creating folder: {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
+    
+    def get_folder_by_name(self, folder_name: str, parent_folder_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """
+        Get a folder by name in the workspace.
+        
+        Args:
+            folder_name: Name of the folder to find
+            parent_folder_id: Optional parent folder ID to search within (None for root folders)
+            
+        Returns:
+            Folder object if found, None otherwise
+            
+        Raises:
+            FabricApiError: If request fails
+            
+        Required Scopes:
+            Workspace.Read.All or Workspace.ReadWrite.All
+        """
+        try:
+            self._log(f"Searching for folder '{folder_name}' in workspace {self.workspace_id}")
+            folders = self.get_folders()
+            
+            # Filter folders by parent_folder_id and name
+            for folder in folders:
+                folder_parent_id = folder.get('parentFolderId')
+                if (folder['displayName'].lower() == folder_name.lower() and 
+                    folder_parent_id == parent_folder_id):
+                    self._log(f"Found folder '{folder_name}' with ID: {folder['id']}")
+                    return folder
+            
+            self._log(f"Folder '{folder_name}' not found")
+            return None
+            
+        except FabricApiError:
+            raise
+        except Exception as e:
+            error_msg = f"Error searching for folder '{folder_name}': {e}"
+            self._log(error_msg, level="error")
+            raise FabricApiError(error_msg)
 
     def create_eventhouse(self, 
                          display_name: str,
@@ -2937,3 +3064,718 @@ class FabricWorkspaceApiClient(FabricApiClient):
         except Exception as e:
             self._log(f"❌ Unexpected error updating activator definition: {e}", level="ERROR")
             raise FabricApiError(f"Error updating activator definition: {e}")
+    
+    def create_data_agent(self, data_agent_name: str, folder_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create a new Data Agent in the workspace. Reference: https://pypi.org/project/fabric-data-agent-sdk/
+        
+        Args:
+            data_agent_name: The name of the Data Agent to be created.
+            folder_id: Optional folder ID where to create the data agent
+            
+        Returns:
+            Dictionary with data agent information including:
+            - id: Data agent ID (GUID)
+            - displayName: Data agent display name
+            - type: Item type ("DataAgent")
+            - workspaceId: Workspace ID (GUID)
+            
+        Raises:
+            FabricApiError: If creation fails
+            
+        Required Scopes:
+            DataAgent.ReadWrite.All or Item.ReadWrite.All
+            
+        Required Permissions:
+            Contributor workspace role or higher
+        """
+        try:
+            # Validate required parameters
+            if not data_agent_name or not data_agent_name.strip():
+                raise FabricApiError("data_agent_name is required and cannot be empty")
+            
+            self._log(f"Creating Data Agent '{data_agent_name}' in workspace {self.workspace_id}")
+            
+            # Build request payload following the pattern from the original function
+            data = {
+                "artifactType": "LLMPlugin",
+                "displayName": data_agent_name.strip()
+            }
+            
+            # Add optional folder ID
+            if folder_id:
+                data["folderId"] = folder_id
+                self._log(f"Creating Data Agent in folder {folder_id}")
+            
+            # Make the API request using the dataagents endpoint
+            response = self._make_request(
+                f"workspaces/{self.workspace_id}/dataagents", 
+                method="POST", 
+                data=data
+            )
+            
+            # Check response status
+            if response.status_code in [200, 201, 202]:
+                data_agent = response.json()
+                data_agent_id = data_agent.get('id')
+                
+                # If ID is not returned in response, get it by searching by name
+                if not data_agent_id:
+                    self._log(f"Data Agent ID not returned in response, searching by name")
+                    found_agent = self.get_data_agent_by_name(data_agent_name.strip())
+                    if found_agent and found_agent.get('id'):
+                        data_agent = found_agent
+                        data_agent_id = found_agent['id']
+                    else:
+                        raise FabricApiError(f"Data Agent '{data_agent_name}' was created but could not be found or retrieved")
+                
+                self._log(f"Successfully created Data Agent '{data_agent_name}' with ID: {data_agent_id}")
+                return data_agent
+            else:
+                raise FabricApiError(f"Failed to create Data Agent: HTTP {response.status_code}")
+                
+        except FabricApiError:
+            # Re-raise FabricApiError as-is
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error creating Data Agent '{data_agent_name}': {str(e)}")
+    
+    def get_data_agents(self) -> List[Dict[str, Any]]:
+        """
+        Get all Data Agents in the workspace.
+        
+        Returns:
+            List of data agent objects
+            
+        Raises:
+            FabricApiError: If listing fails
+            
+        Required Scopes:
+            DataAgent.Read.All or Item.Read.All
+            
+        Required Permissions:
+            Viewer workspace role or higher
+        """
+        try:
+            self._log(f"Getting Data Agents in workspace {self.workspace_id}")
+            
+            # Make the API request to list dataagents
+            response = self._make_request(
+                f"workspaces/{self.workspace_id}/dataagents", 
+                method="GET"
+            )
+            
+            # Check response status
+            if response.status_code == 200:
+                data_agents = response.json().get('value', [])
+                self._log(f"Found {len(data_agents)} Data Agent(s)")
+                return data_agents
+            else:
+                raise FabricApiError(f"Failed to list Data Agents: HTTP {response.status_code}")
+                
+        except FabricApiError:
+            # Re-raise FabricApiError as-is
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error listing Data Agents: {str(e)}")
+    
+    def get_data_agent_by_name(self, data_agent_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a Data Agent by name from the workspace.
+        
+        Args:
+            data_agent_name: The name of the Data Agent to find.
+            
+        Returns:
+            Dictionary with data agent information if found, None otherwise
+            
+        Raises:
+            FabricApiError: If listing fails
+            
+        Required Scopes:
+            DataAgent.Read.All or Item.Read.All
+            
+        Required Permissions:
+            Viewer workspace role or higher
+        """
+        try:
+            # Validate required parameters
+            if not data_agent_name or not data_agent_name.strip():
+                raise FabricApiError("data_agent_name is required and cannot be empty")
+            
+            self._log(f"Searching for Data Agent '{data_agent_name}' in workspace {self.workspace_id}")
+            
+            # Get all data agents
+            data_agents = self.get_data_agents()
+            
+            # Find the data agent by name
+            for agent in data_agents:
+                if agent.get('displayName', '').strip() == data_agent_name.strip():
+                    self._log(f"Found Data Agent '{data_agent_name}' with ID: {agent.get('id', 'N/A')}")
+                    return agent
+            
+            self._log(f"Data Agent '{data_agent_name}' not found")
+            return None
+                
+        except FabricApiError:
+            # Re-raise FabricApiError as-is
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error searching for Data Agent '{data_agent_name}': {str(e)}")
+
+    # Notebook operations
+    def get_notebooks(self) -> Dict[str, str]:
+        """
+        Get all notebooks in the workspace.
+        
+        Returns:
+            Dictionary mapping notebook names to IDs
+            
+        Raises:
+            FabricApiError: If listing fails
+        """
+        try:
+            self._log(f"Getting notebooks from workspace {self.workspace_id}")
+            response = self._make_request(f"workspaces/{self.workspace_id}/notebooks")
+            
+            if response.status_code == 200:
+                notebooks = response.json().get('value', [])
+                notebook_dict = {notebook['displayName']: notebook['id'] for notebook in notebooks}
+                self._log(f"Found {len(notebooks)} notebook(s)")
+                return notebook_dict
+            else:
+                raise FabricApiError(f"Failed to list notebooks: HTTP {response.status_code}")
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error listing notebooks: {str(e)}")
+    
+    def create_notebook(self, notebook_name: str, notebook_data_base64: str, folder_id: Optional[str] = None, wait_for_lro: bool = True) -> Dict[str, Any]:
+        """
+        Create a new notebook in the workspace.
+        
+        Args:
+            notebook_name: Display name for the notebook
+            notebook_data_base64: Base64-encoded notebook JSON content
+            folder_id: Optional ID of the folder to create the notebook in
+            wait_for_lro: Whether to wait for long running operations to complete
+            
+        Returns:
+            Dictionary with notebook information including ID
+            
+        Raises:
+            FabricApiError: If creation fails or ID cannot be retrieved
+        """
+        try:
+            self._log(f"Creating notebook '{notebook_name}' in workspace {self.workspace_id}")
+            
+            # Construct the notebook data structure
+            notebook_data = {
+                "displayName": notebook_name,
+                "definition": {
+                    "format": "ipynb",
+                    "parts": [{
+                        "path": "notebook-content.ipynb",
+                        "payload": notebook_data_base64,
+                        "payloadType": "InlineBase64"
+                    }]
+                }
+            }
+            
+            # Add folder ID if specified
+            if folder_id:
+                notebook_data["folderId"] = folder_id
+            
+            response = self._make_request(
+                f"workspaces/{self.workspace_id}/notebooks", 
+                method="POST", 
+                data=notebook_data, 
+                wait_for_lro=wait_for_lro
+            )
+            
+            if response.status_code in [200, 201, 202]:
+                # Try to get ID from response
+                notebook_obj = None
+                if response.content:
+                    response_data = response.json()
+                    if 'id' in response_data:
+                        notebook_obj = response_data
+                
+                # If no ID in response, get notebook by name
+                if not notebook_obj or 'id' not in notebook_obj:
+                    notebook_obj = self.get_notebook_by_name(notebook_name)
+                
+                # Ensure we have a notebook object with ID
+                if not notebook_obj or 'id' not in notebook_obj:
+                    raise FabricApiError(f"Failed to retrieve notebook ID after creation for '{notebook_name}'")
+                
+                return notebook_obj
+            else:
+                raise FabricApiError(f"Failed to create notebook: HTTP {response.status_code}")
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error creating notebook: {str(e)}")
+    
+    def update_notebook(self, notebook_id: str, notebook_name: str, notebook_data_base64: str, folder_id: Optional[str] = None, wait_for_lro: bool = True) -> requests.Response:
+        """
+        Update an existing notebook in the workspace.
+        
+        Args:
+            notebook_id: Notebook ID to update
+            notebook_name: Display name for the notebook
+            notebook_data_base64: Base64-encoded notebook JSON content
+            folder_id: Optional ID of the folder to place the notebook in
+            wait_for_lro: Whether to wait for long running operations to complete
+            
+        Returns:
+            API response
+            
+        Raises:
+            FabricApiError: If update fails
+        """
+        try:
+            self._log(f"Updating notebook '{notebook_name}' ({notebook_id}) in workspace {self.workspace_id}")
+            
+            # Construct the notebook data structure
+            notebook_data = {
+                "displayName": notebook_name,
+                "definition": {
+                    "format": "ipynb",
+                    "parts": [{
+                        "path": "notebook-content.ipynb",
+                        "payload": notebook_data_base64,
+                        "payloadType": "InlineBase64"
+                    }]
+                }
+            }
+            
+            # Add folder ID if specified
+            if folder_id:
+                notebook_data["folderId"] = folder_id
+            
+            return self._make_request(
+                f"workspaces/{self.workspace_id}/notebooks/{notebook_id}/updateDefinition", 
+                method="POST", 
+                data=notebook_data,
+                wait_for_lro=wait_for_lro
+            )
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error updating notebook: {str(e)}")
+
+    def get_notebook_by_name(self, notebook_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get a notebook by name from the workspace.
+        
+        Args:
+            notebook_name: The name of the notebook to find
+            
+        Returns:
+            Dictionary with notebook information if found, None otherwise
+            
+        Raises:
+            FabricApiError: If listing fails
+        """
+        try:
+            # Validate required parameters
+            if not notebook_name or not notebook_name.strip():
+                raise FabricApiError("notebook_name is required and cannot be empty")
+            
+            self._log(f"Searching for notebook '{notebook_name}' in workspace {self.workspace_id}")
+            
+            # Get all notebooks (raw list)
+            response = self._make_request(f"workspaces/{self.workspace_id}/notebooks")
+            
+            if response.status_code == 200:
+                notebooks = response.json().get('value', [])
+                
+                # Find the notebook by name
+                for notebook in notebooks:
+                    if notebook.get('displayName', '').strip() == notebook_name.strip():
+                        self._log(f"Found notebook '{notebook_name}' with ID: {notebook.get('id', 'N/A')}")
+                        return notebook
+                
+                self._log(f"Notebook '{notebook_name}' not found")
+                return None
+            else:
+                raise FabricApiError(f"Failed to list notebooks: HTTP {response.status_code}")
+                
+        except FabricApiError:
+            raise
+        except Exception as e:
+            raise FabricApiError(f"Unexpected error searching for notebook '{notebook_name}': {str(e)}")
+
+    def schedule_notebook_job(self, notebook_id: str) -> Dict[str, Any]:
+        """
+        Schedule a single notebook job and monitor its completion.
+        
+        Args:
+            notebook_id: Notebook ID to execute
+            
+        Returns:
+            Dictionary with execution results including status, duration, and details
+            
+        Raises:
+            FabricApiError: If execution fails
+        """
+        import time
+        
+        job_url = f"workspaces/{self.workspace_id}/items/{notebook_id}/jobs/RunNotebook/instances"
+        start_time = time.time()
+        
+        try:
+            self._log(f"Starting notebook execution: {notebook_id}")
+            response = self._make_request(job_url, method="POST", wait_for_lro=False)
+            
+            # Handle immediate completion (HTTP 200)
+            if response.status_code == 200:
+                job_data = response.json() if response.content else {}
+                self._log(f"Notebook {notebook_id} completed immediately (synchronous)")
+                return {'status': 'Completed', 'duration': '0m 0s', 'details': job_data}
+            
+            # Handle Long Running Operation (HTTP 202)
+            if response.status_code == 202:
+                job_monitoring_url = response.headers.get('location')
+                if not job_monitoring_url:
+                    error_msg = 'No location header in 202 response'
+                    self._log(f"Failed to start notebook {notebook_id}: {error_msg}", "ERROR")
+                    return {'status': 'Failed', 'error': error_msg}
+                
+                # Monitor the long-running operation
+                try:
+                    lro_response = self._wait_for_lro_completion(
+                        job_url=job_monitoring_url,
+                        operation_name=f"notebook-{notebook_id}",
+                        max_wait_time=1800,  # 30 minutes for notebook execution
+                        check_interval=20   # 20 seconds between checks
+                    )
+                    
+                    # Calculate duration
+                    elapsed_time = time.time() - start_time
+                    duration_str = self._format_duration(elapsed_time)
+                    
+                    # Parse response to extract job status
+                    if lro_response.status_code == 200:
+                        try:
+                            job_data = lro_response.json()
+                            job_status = job_data.get('status', 'Completed')
+                            
+                            return {
+                                'status': job_status,
+                                'duration': duration_str,
+                                'details': job_data
+                            }
+                        except (ValueError, KeyError):
+                            # Response doesn't have JSON or status field - treat as completed
+                            return {
+                                'status': 'Completed',
+                                'duration': duration_str,
+                                'details': {}
+                            }
+                    else:
+                        return {
+                            'status': 'Failed',
+                            'duration': duration_str,
+                            'error': f"Unexpected response status: {lro_response.status_code}"
+                        }
+                        
+                except FabricApiError as e:
+                    elapsed_time = time.time() - start_time
+                    duration_str = self._format_duration(elapsed_time)
+                    
+                    # Determine if it's a timeout or other error
+                    if "timed out" in str(e):
+                        return {
+                            'status': 'Timeout',
+                            'duration': duration_str,
+                            'error': str(e)
+                        }
+                    else:
+                        return {
+                            'status': 'Failed',
+                            'duration': duration_str,
+                            'error': str(e)
+                        }
+            
+            # Handle errors (HTTP 4xx/5xx)
+            if response.status_code >= 400:
+                error_msg = f"HTTP {response.status_code}: {response.text}"
+                self._log(f"Failed to start notebook {notebook_id}: {error_msg}", "ERROR")
+                return {'status': 'Failed', 'error': error_msg}
+            
+            # Handle unexpected status codes
+            error_msg = f"Unexpected HTTP status {response.status_code}: {response.text}"
+            self._log(f"Unexpected response for notebook {notebook_id}: {error_msg}", "ERROR")
+            return {'status': 'Failed', 'error': error_msg}
+            
+        except FabricApiError:
+            raise
+        except Exception as e:
+            elapsed_time = time.time() - start_time
+            duration_str = self._format_duration(elapsed_time)
+            raise FabricApiError(f"Unexpected error executing notebook {notebook_id}: {str(e)}")
+
+    # Environment operations
+    def create_environment(self,
+                          display_name: str,
+                          description: Optional[str] = None,
+                          folder_id: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create a new environment in the workspace.
+        
+        Args:
+            display_name: Display name for the environment
+            description: Optional description for the environment
+            folder_id: Optional folder ID where to create the environment
+            
+        Returns:
+            Dictionary containing the created environment details
+        """
+        self._log(f"Creating environment '{display_name}' in workspace {self.workspace_id}")
+        
+        # Build request body
+        request_body = {
+            "displayName": display_name
+        }
+        
+        if description:
+            request_body["description"] = description
+            
+        if folder_id:
+            request_body["folderId"] = folder_id
+        
+        response = self._make_request(
+            uri=f"workspaces/{self.workspace_id}/environments",
+            method="POST",
+            data=json.dumps(request_body),
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [201, 202]:
+            self._log(f"Successfully created environment '{display_name}'")
+            return response.json()
+        else:
+            self._log(f"Failed to create environment '{display_name}': {response.status_code} - {response.text}", "ERROR")
+            raise FabricApiError(f"Failed to create environment: {response.text}", response.status_code, response.json() if response.content else None)
+
+    def list_environments(self, 
+                         continuation_token: Optional[str] = None,
+                         get_all: bool = True) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+        """
+        List environments in the workspace.
+        
+        Args:
+            continuation_token: Optional continuation token for pagination
+            get_all: If True, retrieves all environments by handling pagination automatically
+            
+        Returns:
+            Dictionary with environment list and pagination info, or List of all environments if get_all=True
+        """
+        self._log(f"Listing environments in workspace {self.workspace_id}")
+        
+        if not get_all:
+            # Single page request
+            uri = f"workspaces/{self.workspace_id}/environments"
+            if continuation_token:
+                uri += f"?continuationToken={continuation_token}"
+                
+            response = self._make_request(uri=uri, method="GET", wait_for_lro=False)
+            
+            if response.status_code == 200:
+                result = response.json()
+                self._log(f"Successfully retrieved {len(result.get('value', []))} environments")
+                return result
+            else:
+                self._log(f"Failed to list environments: {response.status_code} - {response.text}", "ERROR")
+                raise FabricApiError(f"Failed to list environments: {response.text}", response.status_code, response.json() if response.content else None)
+        else:
+            # Get all environments with automatic pagination
+            all_environments = []
+            current_token = continuation_token
+            
+            while True:
+                uri = f"workspaces/{self.workspace_id}/environments"
+                if current_token:
+                    uri += f"?continuationToken={current_token}"
+                    
+                response = self._make_request(uri=uri, method="GET", wait_for_lro=False)
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    environments = result.get('value', [])
+                    all_environments.extend(environments)
+                    
+                    # Check if there are more pages
+                    current_token = result.get('continuationToken')
+                    if not current_token:
+                        break
+                else:
+                    self._log(f"Failed to list environments: {response.status_code} - {response.text}", "ERROR")
+                    raise FabricApiError(f"Failed to list environments: {response.text}", response.status_code, response.json() if response.content else None)
+            
+            self._log(f"Successfully retrieved {len(all_environments)} environments")
+            return all_environments
+
+    def get_environment_by_name(self, environment_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Get an environment by its display name.
+        
+        Args:
+            environment_name: Display name of the environment to find
+            
+        Returns:
+            Dictionary containing the environment details if found, None otherwise
+        """
+        self._log(f"Getting environment by name: '{environment_name}'")
+        
+        try:
+            environments = self.list_environments(get_all=True)
+            
+            for env in environments:
+                if env.get('displayName') == environment_name:
+                    self._log(f"Found environment '{environment_name}' with ID: {env.get('id')}")
+                    return env
+                    
+            self._log(f"Environment '{environment_name}' not found")
+            return None
+            
+        except Exception as e:
+            self._log(f"Error getting environment by name '{environment_name}': {str(e)}", "ERROR")
+            return None
+
+    def delete_environment(self, environment_id: str) -> bool:
+        """
+        Delete an environment from the workspace.
+        
+        Args:
+            environment_id: ID of the environment to delete
+            
+        Returns:
+            True if deletion was successful, False otherwise
+        """
+        self._log(f"Deleting environment with ID: {environment_id}")
+        
+        try:
+            response = self._make_request(
+                uri=f"workspaces/{self.workspace_id}/environments/{environment_id}",
+                method="DELETE",
+                wait_for_lro=False
+            )
+            
+            if response.status_code == 200:
+                self._log(f"Successfully deleted environment {environment_id}")
+                return True
+            else:
+                self._log(f"Failed to delete environment {environment_id}: {response.status_code} - {response.text}", "ERROR")
+                return False
+                
+        except Exception as e:
+            self._log(f"Error deleting environment {environment_id}: {str(e)}", "ERROR")
+            return False
+
+    def publish_environment(self, environment_id: str) -> Dict[str, Any]:
+        """
+        Trigger a publish operation for an environment.
+        
+        Args:
+            environment_id: ID of the environment to publish
+            
+        Returns:
+            Dictionary containing the publish operation details
+        """
+        self._log(f"Publishing environment with ID: {environment_id}")
+        
+        response = self._make_request(
+            uri=f"workspaces/{self.workspace_id}/environments/{environment_id}/staging/publish?beta=false",
+            method="POST",
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [200, 202]:
+            self._log(f"Successfully triggered publish for environment {environment_id}")
+            return response.json()
+        else:
+            self._log(f"Failed to publish environment {environment_id}: {response.status_code} - {response.text}", "ERROR")
+            raise FabricApiError(f"Failed to publish environment: {response.text}", response.status_code, response.json() if response.content else None)
+
+    def update_environment_definition(self,
+                                     environment_id: str,
+                                     environment_yml_base64: Optional[str] = None,
+                                     sparkcompute_yml_base64: Optional[str] = None,
+                                     platform_base64: Optional[str] = None) -> bool:
+        """
+        Update the definition of an environment.
+        
+        Args:
+            environment_id: ID of the environment to update
+            environment_yml_base64: Optional base64 encoded environment.yml content
+            sparkcompute_yml_base64: Optional base64 encoded Sparkcompute.yml content
+            platform_base64: Optional base64 encoded .platform content
+            
+        Returns:
+            True if update was successful, False otherwise
+        
+        Note:
+            update_metadata is automatically set to True if platform_base64 is provided, False otherwise
+        """
+        self._log(f"Updating definition for environment {environment_id}")
+        
+        # Build definition parts
+        definition_parts = []
+        
+        if environment_yml_base64:
+            definition_parts.append({
+                "path": "Libraries/PublicLibraries/environment.yml",
+                "payload": environment_yml_base64,
+                "payloadType": "InlineBase64"
+            })
+            
+        if sparkcompute_yml_base64:
+            definition_parts.append({
+                "path": "Setting/Sparkcompute.yml",
+                "payload": sparkcompute_yml_base64,
+                "payloadType": "InlineBase64"
+            })
+            
+        if platform_base64:
+            definition_parts.append({
+                "path": ".platform",
+                "payload": platform_base64,
+                "payloadType": "InlineBase64"
+            })
+        
+        if not definition_parts:
+            self._log("No definition parts provided for update", "ERROR")
+            return False
+            
+        request_body = {
+            "definition": {
+                "parts": definition_parts
+            }
+        }
+        
+        # Auto-determine update_metadata based on platform_base64
+        update_metadata = platform_base64 is not None
+        
+        uri = f"workspaces/{self.workspace_id}/environments/{environment_id}/updateDefinition"
+        if update_metadata:
+            uri += "?updateMetadata=true"
+        
+        response = self._make_request(
+            uri=uri,
+            method="POST",
+            data=json.dumps(request_body),
+            wait_for_lro=True
+        )
+        
+        if response.status_code in [200, 202]:
+            self._log(f"Successfully updated definition for environment {environment_id}")
+            return True
+        else:
+            self._log(f"Failed to update environment definition {environment_id}: {response.status_code} - {response.text}", "ERROR")
+            return False

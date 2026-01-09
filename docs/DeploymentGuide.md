@@ -33,28 +33,37 @@ The deployment uses a coordinated two-phase approach that is **idempotent** and 
 ```text
 
 PHASE 1: Infrastructure (Bicep)     PHASE 2: Fabric Setup (Python)
-├─ Fabric Capacity                  ├─ Workspace
-├─ Event Hub                        ├─ Eventhouse & KQL Database
-└─ Resource Group                   ├─ Eventstream & Connections
-                                    ├─ Real-Time Dashboard
-                                    ├─ Activator Rules
-                                    └─ Sample Data
+|─ Fabric Capacity                  |─ Workspace
+|─ Event Hub                        |─ Eventhouse & KQL Database
+└─ Resource Group                   |  └─ Sample Data
+                                    |─ Eventstream connection
+                                    |─ Real-Time Dashboard
+                                    |─ Activator Rules
+                                    |─ Data agent
+                                    └─ Folder (Data agent configuration)
+                                       ├─ Environment
+                                       └─ Notebook
 ```
 
 **Phase 1** provisions Azure infrastructure using Bicep templates with ARM idempotency:
 
-- **Fabric Capacity** - Dedicated compute resources for Fabric workloads with auto-scaling capabilities
-- **Event Hub** - High-throughput streaming service for real-time data ingestion and event processing
-- **Resource Group** - Logical container organizing and managing all deployed Azure resources
+- **[Resource Group](https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal#what-is-a-resource-group)** - Logical container organizing and managing all deployed Azure resources
+- **[Fabric Capacity](https://learn.microsoft.com/en-us/fabric/enterprise/licenses#capacity)** - Dedicated compute resources for Fabric workloads with auto-scaling capabilities
+- **[Event Hub](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-about)** - High-throughput streaming service for real-time data ingestion and event processing
 
 **Phase 2** manages Fabric components using Python scripts with intelligent resource detection:
 
-- **Workspace** - Collaborative environment hosting all Fabric artifacts and configurations
-- **Eventhouse & KQL Database** - Real-time analytics engine with high-performance query capabilities and pre-configured schema
-- **Eventstream & Connections** - Data pipeline orchestration connecting Event Hub to Eventhouse with transformation rules
-- **Real-Time Dashboard** - Interactive monitoring interface with live visualizations and drill-down analytics
-- **Activator Rules** - Automated anomaly detection system with configurable alert thresholds and notifications
-- **Sample Data** - Pre-loaded telemetry data for immediate testing and demonstration purposes
+- **[Workspace](https://learn.microsoft.com/fabric/fundamentals/workspaces)** - Collaborative environment hosting all Fabric artifacts and configurations
+- **[Eventhouse](https://learn.microsoft.com/fabric/real-time-intelligence/eventhouse) & [KQL Database](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/create-database)** - Real-time analytics engine with high-performance query capabilities and pre-configured schema
+  - **Sample Data** - Pre-loaded telemetry data for immediate testing and demonstration purposes
+- **[Eventhub connection](https://learn.microsoft.com/fabric/real-time-intelligence/event-streams/add-source-azure-event-hubs?pivots=basic-features)** - Connection to the deployed Event Hub resource in Azure
+- **[Eventstream](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/event-streams/overview?tabs=enhancedcapabilities)** - Data pipeline orchestration connecting Event Hub to Eventhouse with transformation rules
+- **[Real-Time Dashboard](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/dashboard-real-time-create?tabs=create-manual%2Ckql-database)** - Interactive monitoring interface with live visualizations and drill-down analytics
+- **[Activator](https://learn.microsoft.com/en-us/fabric/real-time-intelligence/data-activator/activator-introduction)** - Automated anomaly detection system with configurable alert thresholds and notifications
+- **[Data Agent](https://learn.microsoft.com/en-us/fabric/data-science/concept-data-agent)** - AI-powered conversational interface for natural language data queries with configured notebook
+- **Folder** - Organizational container for grouping items required for Data Agent set up
+  - **[Environment](https://learn.microsoft.com/en-us/fabric/data-engineering/create-and-use-environment)** - Fabric Environment for managing libraries, dependencies, and compute configurations required to run the notebook that configures the Data Agent
+  - **[Notebook](https://learn.microsoft.com/en-us/fabric/data-engineering/how-to-use-notebook)** - Fabric Notebook with the script that uses [Fabric data agent Python SDK (in preview)](https://learn.microsoft.com/en-us/fabric/data-science/fabric-data-agent-sdk) to configure the Data Agent
 
 The entire process is orchestrated by Azure Developer CLI with comprehensive error handling and rollback capabilities.
 
@@ -286,6 +295,10 @@ azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
 azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
 azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
 azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
+azd env set FABRIC_DATA_AGENT_NAME "my_custom_dataagent"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME "my_custom_folder"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME "my_custom_environment"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME "my_custom_notebook"
 ```
 
 **Alert Configuration:**
@@ -316,6 +329,10 @@ azd env set AZURE_DEPLOY_FABRIC_CAPACITY false
 | `FABRIC_EVENTSTREAM_NAME` | Eventstream name | `rti_eventstream_<env-name><suffix>` |
 | `FABRIC_ACTIVATOR_NAME` | Activator name | `rti_activator_<env-name><suffix>` |
 | `FABRIC_ACTIVATOR_ALERTS_EMAIL` | Alert email address | `alerts@contoso.com` |
+| `FABRIC_DATA_AGENT_NAME` | Data Agent name | `rti_dataagent_<env-name><suffix>` |
+| `FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME` | Folder name for organizing data agent configuration components | `rti_dataagentconfig_<env-name><suffix>` |
+| `FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME` | Environment name with the python libraries required to configure data agent | `rti_environment_<env-name><suffix>` |
+| `FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME` | Notebook to set up the Data Agent configuration | `rti_notebook_<env-name><suffix>` |
 
 #### System-Managed Variables
 
@@ -395,6 +412,10 @@ azd env set FABRIC_EVENT_HUB_CONNECTION_NAME "my_eventhub_connection"
 azd env set FABRIC_RTIDASHBOARD_NAME "My Custom Dashboard"
 azd env set FABRIC_EVENTSTREAM_NAME "my_custom_eventstream"
 azd env set FABRIC_ACTIVATOR_NAME "my_custom_activator"
+azd env set FABRIC_DATA_AGENT_NAME "my_custom_dataagent"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_FOLDER_NAME "my_custom_folder"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_ENVIRONMENT_NAME "my_custom_environment"
+azd env set FABRIC_DATA_AGENT_CONFIGURATION_NOTEBOOK_NAME "my_custom_notebook"
 ```
 
 > **Note:** These are optional. If not set, defaults will use your environment name and a generated suffix.
@@ -420,6 +441,10 @@ During deployment, you'll be prompted for:
 3. Component setup (Eventhouse, dashboard, Activator)
 4. Sample data loading
 5. Connection configuration
+6. Folder setup
+7. Data Agent configuration through Runbook (Preview)
+
+> **Preview Feature Notice:** Steps involving Fabric Data Agent configuration are [Preview features](https://learn.microsoft.com/en-us/fabric/data-science/fabric-data-agent-sdk). If these steps fail, the core functionality will still work, and you can complete the setup manually using our guides.
 
 ### 4.6 Verify Deployment Success
 
@@ -431,6 +456,8 @@ After `azd up` completes successfully:
 
 ⚠️ **Deployment Issues?** Check [Known Issues and Troubleshooting](#known-issues-and-troubleshooting) for common solutions.
 
+> **Preview Feature Notice:** If the Data Agent setup fails during deployment (step 14), the core Real-Time Intelligence functionality will still work. You can complete the Data Agent setup manually using the [Fabric Data Agent Guide](./FabricDataAgentGuide.md).
+
 **What You Get:**
 
 - Complete real-time analytics platform with Event Hub, Fabric Eventhouse, KQL database
@@ -438,17 +465,21 @@ After `azd up` completes successfully:
 - Real-time dashboards for operational monitoring
 - Automated alerting with Activator for anomaly detection
 - Eventstream for data pipeline orchestration
+- AI-powered Data Agent for conversational queries
+- Fabric runbook and environment for Data Agent configuration
 
 ---
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Set Up Fabric Data Agent
+### 5.1 Verify Fabric Data Agent Setup
 
-Enable the AI-powered Fabric Data Agent to answer natural language questions about your data.
+The AI-powered Fabric Data Agent is automatically configured during deployment to answer natural language questions about your data.
 
-- **Setup and Configuration:** See [Fabric Data Agent Guide](./FabricDataAgentGuide.md)
+- **Verification and Usage:** See [Fabric Data Agent Guide](./FabricDataAgentGuide.md)
 - **Demonstration Flow:** See [Demonstrator's Guide - Step 1](./DemonstratorGuide.md#step-1-demonstrate-the-fabric-data-agent)
+
+> **Note:** Data Agent automation is a Preview feature. If the automated setup fails during deployment, you can complete the setup manually using the guide above.
 
 ### 5.2 Start Event Simulation
 
@@ -527,10 +558,14 @@ After successful deployment, you have:
 
 - Eventhouse (real-time analytics engine)
 - KQL Database (high-performance queries)
+- Sample data (pre-loaded for testing)
 - Real-time Dashboards (operational monitoring)
 - Eventstream (data pipeline orchestration)
 - Activator (anomaly detection and alerting)
-- Sample data (pre-loaded for testing)
+- Data Agent (AI-powered conversational queries)
+- Folder (organizational container for Data Agent configuration components)
+- Notebook (Data Agent configuration (Preview))
+- Environment (library and compute management)
 
 ![Fabric Workspace with all components](./images/deployment/deployment_overview_fabric_workspace.png)
 
@@ -575,6 +610,49 @@ Data pipeline orchestration:
 
 ![Eventstream data flow configuration](./images/deployment/deployment_overview_fabric_eventstream.png)
 
+#### Data Agent
+
+AI-powered conversational data interface:
+
+- **Name:** `rti_dataagent_<env-name><suffix>`
+- **Type:** Fabric Data Agent for natural language queries
+- **Connected Database:** KQL Database for real-time analytics
+
+![Data Agent overview](./images/deployment/deployment_overview_fabric_dataagent.png)
+
+#### Folder with Data Agent configuration scripts
+
+Folder with script to set up Data Agent configuration
+
+- **Folder:** `rti_dataagentconfig_<env-name><suffix>` for organizational structure
+- **Purpose:** Container to host assets to configure the Data Agent
+
+![Data Agent configuration folder](./images/deployment/deployment_overview_fabric_dataagent_configuration_folder.png)
+
+#### Data agent configuration Environment
+
+Library and compute environment management:
+
+- **Name:** `rti_environment_<env-name><suffix>`
+- **Type:** Fabric Environment for managing Python libraries and dependencies
+- **Configuration:** Pre-configured with required libraries from environment.yml
+- **Purpose:** Provides compute environment and libraries set up for Data Agent configuration runbook
+
+![Data Agent configuration folder](./images/deployment/deployment_overview_fabric_dataagent_configuration_environment.png)
+
+#### Data agent configuration Notebook (Preview)
+
+Library and compute environment management:
+
+- **Name:** `rti_notebook_<env-name><suffix>`
+- **Type:** Fabric Environment for managing Python libraries and dependencies
+- **Configuration:** Pre-configured with required code to set up Data Agent
+- **Purpose:** Provides automation to set up configuration of the Data Agent
+
+> **Note:** Data Agent configuration script is a Preview feature and may have limitations. If automated setup fails, refer to the [Fabric Data Agent Guide](./FabricDataAgentGuide.md) for manual configuration.
+
+![Data Agent configuration notebook](./images/deployment/deployment_overview_fabric_dataagent_configuration_notebook.png)
+
 ---
 
 ## Step 7: Clean Up (Optional)
@@ -593,7 +671,7 @@ azd down --force --purge
 
 **What Gets Cleaned Up:**
 
-- ✅ Fabric workspace and all components
+- ✅ Fabric workspace and all components (Eventhouse, Dashboard, Activator, Environment, Data Agent)
 - ✅ Azure Event Hub and infrastructure
 - ✅ Fabric capacity (if created by deployment)
 - ✅ Resource groups and configurations

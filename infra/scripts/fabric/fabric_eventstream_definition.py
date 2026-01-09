@@ -153,7 +153,7 @@ def transform_eventstream_config(eventstream_config: dict,
     
     return eventstream_config
 
-def update_eventstream_definition(workspace_client: FabricWorkspaceApiClient,
+def setup_eventstream_definition(workspace_client: FabricWorkspaceApiClient,
                                 workspace_id: str,
                                 eventstream_id: str,
                                 eventstream_file_path: str,
@@ -352,7 +352,7 @@ Examples:
     # Execute the main logic
     fabric_client = FabricApiClient()
     
-    result = update_eventstream_definition(
+    result = setup_eventstream_definition(
         fabric_client=fabric_client,
         workspace_id=args.workspace_id,
         eventstream_id=args.eventstream_id,

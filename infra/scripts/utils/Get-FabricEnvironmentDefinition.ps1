@@ -1,45 +1,44 @@
 <#
 .SYNOPSIS
-    Get Microsoft Fabric Real Time Dashboard (KQL Dashboard) Definition using REST API
+    Get Microsoft Fabric Environment Definition using REST API
 
 .DESCRIPTION
-    This script retrieves and decodes Microsoft Fabric Real Time Dashboard (KQL Dashboard) definitions using the Fabric REST API.
+    This script retrieves and decodes Microsoft Fabric Environment definitions using the Fabric REST API.
     It handles Azure CLI authentication, makes the API request, and decodes the Base64 payload to provide
-    readable dashboard configuration including queries, parameters, data sources, and visualization tiles.
-    By default, it also tokenizes the resulting JSON files using the Run-FabricJsonTokenizer.ps1 script.
+    readable environment configuration including libraries, custom libraries, settings, and configuration files.
 
 .PARAMETER WorkspaceId
-    The workspace ID (GUID) containing the KQL dashboard
+    The workspace ID (GUID) containing the environment
 
-.PARAMETER KqlDashboardId
-    The KQL dashboard ID (GUID) to retrieve
+.PARAMETER EnvironmentId
+    The environment ID (GUID) to retrieve
 
 .PARAMETER FolderPath
-    Path to save the decoded definition files (defaults to "src/realTimeDashboard" relative to repository root)
+    Path to save the decoded definition files (defaults to "src/environment" relative to repository root)
 
 .PARAMETER Format
-    Optional format parameter for the KQL dashboard definition (as supported by the API)
+    Optional format parameter for the environment definition (as supported by the API)
 
 .PARAMETER SkipTokenization
     If specified, skips the automatic tokenization of JSON files after creation
 
 .EXAMPLE
-    .\Get-FabricRealTimeDashboardDefinition.ps1 -WorkspaceId "aaaabbbb-0000-cccc-1111-dddd2222eeee" -KqlDashboardId "bbbbcccc-1111-dddd-2222-eeee3333ffff"
+    .\Get-FabricEnvironmentDefinition.ps1 -WorkspaceId "aaaabbbb-0000-cccc-1111-dddd2222eeee" -EnvironmentId "bbbbcccc-1111-dddd-2222-eeee3333ffff"
 
 .EXAMPLE
-    .\Get-FabricRealTimeDashboardDefinition.ps1 -WorkspaceId "aaaabbbb-0000-cccc-1111-dddd2222eeee" -KqlDashboardId "bbbbcccc-1111-dddd-2222-eeee3333ffff" -FolderPath "C:\temp\dashboard"
+    .\Get-FabricEnvironmentDefinition.ps1 -WorkspaceId "aaaabbbb-0000-cccc-1111-dddd2222eeee" -EnvironmentId "bbbbcccc-1111-dddd-2222-eeee3333ffff" -FolderPath "C:\temp\environment"
 
 .NOTES
     Requires Azure CLI to be installed and logged in with appropriate permissions to access Fabric resources.
     
     Required Scopes:
-    - KQLDashboard.ReadWrite.All or Item.ReadWrite.All
+    - Environment.ReadWrite.All or Item.ReadWrite.All
     
     Required Permissions:
-    - Read and write permissions for the KQL dashboard
+    - Read and write permissions for the environment
 
 .LINK
-    https://learn.microsoft.com/en-us/rest/api/fabric/kqldashboard/items/get-kql-dashboard-definition
+    https://learn.microsoft.com/en-us/rest/api/fabric/environment/items/get-environment-definition
 #>
 
 [CmdletBinding()]
@@ -50,7 +49,7 @@ param(
     
     [Parameter(Mandatory = $true)]
     [ValidatePattern('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$')]
-    [string]$KqlDashboardId,
+    [string]$EnvironmentId,
     
     [Parameter(Mandatory = $false)]
     [string]$FolderPath = $null,
@@ -186,7 +185,8 @@ function Invoke-FabricApiRequest {
             # Log request ID if available
             $requestId = $response.Headers['requestId']
             if ($requestId) {
-                Write-Log "Request ID: $requestId"
+                $requestIdValue = if ($requestId -is [array]) { $requestId[0] } else { $requestId }
+                Write-Log "Request ID: $requestIdValue"
             }
             
             # Handle different status codes
@@ -202,7 +202,8 @@ function Invoke-FabricApiRequest {
                 429 {
                     # Rate limiting - retry with exponential backoff
                     $retryAfter = if ($response.Headers['Retry-After']) { 
-                        [int]$response.Headers['Retry-After'] 
+                        $retryHeaderValue = $response.Headers['Retry-After']
+                        [int]($retryHeaderValue -is [array] ? $retryHeaderValue[0] : $retryHeaderValue)
                     }
                     else { 
                         [Math]::Min(60, [Math]::Pow(2, $retryCount))
@@ -269,55 +270,17 @@ function ConvertFrom-Base64 {
     }
 }
 
-function Invoke-JsonTokenization {
+function Get-EnvironmentDefinition {
     <#
     .SYNOPSIS
-        Tokenize JSON files using the Run-FabricJsonTokenizer.ps1 script
-    #>
-    param(
-        [string]$FolderPath,
-        [string]$SchemaType
-    )
-    
-    try {
-        Write-Log "Starting JSON tokenization for schema type: $SchemaType in folder: $FolderPath"
-        
-        # Get the path to the tokenizer script
-        $tokenizerScript = Join-Path $PSScriptRoot "Run-FabricJsonTokenizer.ps1"
-        
-        if (-not (Test-Path $tokenizerScript)) {
-            Write-Log "Tokenizer script not found at: $tokenizerScript" "WARNING"
-            return
-        }
-        
-        if (-not (Test-Path $FolderPath)) {
-            Write-Log "Folder not found at: $FolderPath" "WARNING"
-            return
-        }
-        
-        # Let the tokenizer script find and process all appropriate files based on schema type
-        # This ensures both .json and .platform files are processed correctly
-        Write-Log "Running tokenizer for schema type: $SchemaType"
-        & $tokenizerScript -SchemaType $SchemaType
-        
-        Write-Log "JSON tokenization completed successfully"
-    }
-    catch {
-        Write-Log "Failed to tokenize JSON files: $($_.Exception.Message)" "WARNING"
-    }
-}
-
-function Get-KqlDashboardDefinition {
-    <#
-    .SYNOPSIS
-        Get and decode KQL Dashboard (Real Time Dashboard) definition from Fabric API
+        Get and decode Environment definition from Fabric API
     #>
     
     try {
-        Write-Log "Getting KQL dashboard definition for workspace $WorkspaceId, dashboard $KqlDashboardId"
+        Write-Log "Getting environment definition for workspace $WorkspaceId, environment $EnvironmentId"
         
         # Build URI with optional format parameter
-        $uri = "workspaces/$WorkspaceId/kqlDashboards/$KqlDashboardId/getDefinition"
+        $uri = "workspaces/$WorkspaceId/environments/$EnvironmentId/getDefinition"
         if ($Format) {
             $uri += "?format=$Format"
         }
@@ -326,54 +289,111 @@ function Get-KqlDashboardDefinition {
         $response = Invoke-FabricApiRequest -Uri $uri -Method "POST"
         
         if ($response.StatusCode -eq 202) {
-            # Handle long-running operation
-            $location = $response.Headers['Location']
+            # Handle long-running operation according to Fabric LRO pattern
             $operationId = $response.Headers['x-ms-operation-id']
-            $retryAfter = if ($response.Headers['Retry-After']) { [int]$response.Headers['Retry-After'] } else { 30 }
+            $operationId = if ($operationId -is [array]) { $operationId[0] } else { $operationId }
+            $retryAfter = if ($response.Headers['Retry-After']) { 
+                $retryHeaderValue = $response.Headers['Retry-After']
+                [int]($retryHeaderValue -is [array] ? $retryHeaderValue[0] : $retryHeaderValue)
+            }
+            else { 30 }
+            
+            if (-not $operationId) {
+                throw "Long-running operation started but no operation ID received"
+            }
             
             Write-Log "Long-running operation started. Operation ID: $operationId" "WARNING"
             Write-Log "Polling for completion every $retryAfter seconds..."
             
             do {
                 Start-Sleep -Seconds $retryAfter
-                Write-Log "Checking operation status..."
+                Write-Log "Checking operation state..."
                 
                 try {
-                    $statusResponse = Invoke-WebRequest -Uri $location -Headers @{
-                        'Authorization' = "Bearer $(Get-AuthToken)"
-                    } -UseBasicParsing
+                    # Check operation state using proper Fabric LRO endpoint
+                    $stateResponse = Invoke-FabricApiRequest -Uri "operations/$operationId" -Method "GET"
+                    $stateData = $stateResponse.Content | ConvertFrom-Json
                     
-                    if ($statusResponse.StatusCode -eq 200) {
-                        $response = $statusResponse
-                        Write-Log "Operation completed successfully"
-                        break
+                    Write-Log "Operation status: $($stateData.status)"
+                    
+                    switch ($stateData.status.ToLower()) {
+                        "succeeded" {
+                            Write-Log "Operation completed successfully"
+                            
+                            # Get the operation result using proper Fabric LRO endpoint
+                            Write-Log "Retrieving operation result..."
+                            $resultResponse = Invoke-FabricApiRequest -Uri "operations/$operationId/result" -Method "GET"
+                            $response = $resultResponse
+                            break
+                        }
+                        "failed" {
+                            $errorMsg = "Operation failed"
+                            if ($stateData.error) {
+                                $errorMsg += ": $($stateData.error.message)"
+                                Write-Log "Operation error details: $($stateData.error | ConvertTo-Json -Depth 3)" "ERROR"
+                            }
+                            throw $errorMsg
+                        }
+                        "running" {
+                            Write-Log "Operation still in progress (status: $($stateData.status))..."
+                            
+                            # Update retry interval if provided in the state response
+                            if ($stateData.retryAfter) {
+                                $retryAfter = [int]$stateData.retryAfter
+                                Write-Log "Updated retry interval to $retryAfter seconds"
+                            }
+                            continue
+                        }
+                        "notstarted" {
+                            Write-Log "Operation still in progress (status: $($stateData.status))..."
+                            
+                            # Update retry interval if provided in the state response
+                            if ($stateData.retryAfter) {
+                                $retryAfter = [int]$stateData.retryAfter
+                                Write-Log "Updated retry interval to $retryAfter seconds"
+                            }
+                            continue
+                        }
+                        default {
+                            Write-Log "Unknown operation status: $($stateData.status)" "WARNING"
+                            continue
+                        }
                     }
-                    elseif ($statusResponse.StatusCode -eq 202) {
-                        Write-Log "Operation still in progress..."
-                        continue
-                    }
-                    else {
-                        throw "Unexpected status code: $($statusResponse.StatusCode)"
-                    }
+                    
+                    # Break out of the polling loop if operation completed (success or failure)
+                    break
                 }
                 catch {
-                    Write-Log "Error checking operation status: $($_.Exception.Message)" "ERROR"
+                    Write-Log "Error checking operation state: $($_.Exception.Message)" "ERROR"
                     throw
                 }
             } while ($true)
         }
         elseif ($response.StatusCode -ne 200) {
-            throw "Failed to get KQL dashboard definition. Status: $($response.StatusCode)"
+            throw "Failed to get environment definition. Status: $($response.StatusCode)"
         }
         
         # Parse response
         $responseData = $response.Content | ConvertFrom-Json
         
-        if (-not $responseData.definition -or -not $responseData.definition.parts) {
-            throw "Invalid response format: missing definition or parts"
+        # Debug: Log the response structure
+        Write-Log "Response structure: $($responseData | ConvertTo-Json -Depth 2 -Compress)"
+        
+        if (-not $responseData.definition) {
+            Write-Log "Response does not contain 'definition' property" "ERROR"
+            Write-Log "Available properties: $($responseData.PSObject.Properties.Name -join ', ')" "ERROR"
+            throw "Invalid response format: missing 'definition' property"
         }
         
-        Write-Log "Retrieved KQL dashboard definition with $($responseData.definition.parts.Count) part(s)"
+        if (-not $responseData.definition.parts) {
+            Write-Log "Definition does not contain 'parts' property" "ERROR"
+            if ($responseData.definition.PSObject.Properties.Name) {
+                Write-Log "Available definition properties: $($responseData.definition.PSObject.Properties.Name -join ', ')" "ERROR"
+            }
+            throw "Invalid response format: missing 'parts' in definition"
+        }
+        
+        Write-Log "Retrieved environment definition with $($responseData.definition.parts.Count) part(s)"
         
         # Decode all parts
         $decodedParts = @{}
@@ -387,69 +407,61 @@ function Get-KqlDashboardDefinition {
                     $decodedContent = ConvertFrom-Base64 -Base64String $part.payload
                     $decodedParts[$part.path] = $decodedContent
                     
-                    # Try to parse as JSON for summary information
+                    # Try to parse as JSON/YAML for summary information
                     try {
-                        $jsonContent = $decodedContent | ConvertFrom-Json
-                        
-                        # Analyze content based on file name
-                        switch ($part.path) {
-                            "RealTimeDashboard.json" {
-                                # Analyze dashboard configuration
-                                $tiles = if ($jsonContent.tiles) { $jsonContent.tiles.Count } else { 0 }
-                                $queries = if ($jsonContent.queries) { $jsonContent.queries.Count } else { 0 }
-                                $baseQueries = if ($jsonContent.baseQueries) { $jsonContent.baseQueries.Count } else { 0 }
-                                $dataSources = if ($jsonContent.dataSources) { $jsonContent.dataSources.Count } else { 0 }
-                                $parameters = if ($jsonContent.parameters) { $jsonContent.parameters.Count } else { 0 }
-                                $pages = if ($jsonContent.pages) { $jsonContent.pages.Count } else { 0 }
-                                
-                                $summaryInfo["Tiles"] = $tiles
-                                $summaryInfo["Queries"] = $queries
-                                $summaryInfo["Base Queries"] = $baseQueries
-                                $summaryInfo["Data Sources"] = $dataSources
-                                $summaryInfo["Parameters"] = $parameters
-                                $summaryInfo["Pages"] = $pages
-                                
-                                if ($jsonContent.title) {
-                                    $summaryInfo["Title"] = $jsonContent.title
-                                }
-                                
-                                if ($jsonContent.schema_version) {
-                                    $summaryInfo["Schema Version"] = $jsonContent.schema_version
-                                }
-                                
-                                if ($jsonContent.autoRefresh) {
-                                    $autoRefresh = if ($jsonContent.autoRefresh.enabled) { "Enabled" } else { "Disabled" }
-                                    $summaryInfo["Auto Refresh"] = $autoRefresh
+                        # Analyze content based on file name and type
+                        switch -Wildcard ($part.path) {
+                            "Libraries/PublicLibraries/environment.yml" {
+                                # Analyze YAML environment file
+                                $lines = $decodedContent -split "`n"
+                                $dependenciesCount = ($lines | Where-Object { $_ -match '^\s*-\s*' }).Count
+                                $summaryInfo[$part.path] = "Environment YAML file ($dependenciesCount dependencies)"
+                            }
+                            "Setting/Sparkcompute.yml" {
+                                # Analyze Spark compute configuration
+                                $summaryInfo[$part.path] = "Spark compute configuration (YAML)"
+                            }
+                            "Libraries/CustomLibraries/*" {
+                                # Analyze custom libraries
+                                $fileExtension = [System.IO.Path]::GetExtension($part.path)
+                                $fileSize = [Math]::Round($decodedContent.Length / 1024, 2)
+                                switch ($fileExtension) {
+                                    ".jar" { $summaryInfo[$part.path] = "Custom JAR library ($fileSize KB)" }
+                                    ".py" { $summaryInfo[$part.path] = "Custom Python library ($fileSize KB)" }
+                                    ".whl" { $summaryInfo[$part.path] = "Python wheel package ($fileSize KB)" }
+                                    ".tar.gz" { $summaryInfo[$part.path] = "R package archive ($fileSize KB)" }
+                                    default { $summaryInfo[$part.path] = "Custom library file ($fileSize KB)" }
                                 }
                             }
                             ".platform" {
-                                # Analyze platform metadata
-                                if ($jsonContent.metadata) {
-                                    $metadata = $jsonContent.metadata
-                                    if ($metadata.type) {
-                                        $summaryInfo["Item Type"] = $metadata.type
-                                    }
-                                    if ($metadata.displayName) {
-                                        $summaryInfo["Display Name"] = $metadata.displayName
-                                    }
-                                    if ($metadata.description) {
-                                        $summaryInfo["Description"] = $metadata.description
-                                    }
+                                # Try to parse as JSON for platform configuration
+                                try {
+                                    $jsonContent = $decodedContent | ConvertFrom-Json
+                                    $itemType = if ($jsonContent.metadata -and $jsonContent.metadata.type) { $jsonContent.metadata.type } else { "Unknown" }
+                                    $summaryInfo[$part.path] = "Platform configuration ($itemType)"
                                 }
-                                if ($jsonContent.config -and $jsonContent.config.version) {
-                                    $summaryInfo["Config Version"] = $jsonContent.config.version
+                                catch {
+                                    $summaryInfo[$part.path] = "Platform configuration file"
+                                }
+                            }
+                            "*.json" {
+                                # Try to parse generic JSON files
+                                try {
+                                    $jsonContent = $decodedContent | ConvertFrom-Json
+                                    $summaryInfo[$part.path] = "JSON configuration file"
+                                }
+                                catch {
+                                    $summaryInfo[$part.path] = "JSON file (parse error)"
                                 }
                             }
                             default {
-                                # Generic analysis for other JSON files
-                                if ($jsonContent -is [System.Object] -and $jsonContent.PSObject.Properties.Count -gt 0) {
-                                    $summaryInfo[$part.path] = "JSON object with $($jsonContent.PSObject.Properties.Count) properties"
-                                }
+                                $fileSize = [Math]::Round($decodedContent.Length / 1024, 2)
+                                $summaryInfo[$part.path] = "File content ($fileSize KB)"
                             }
                         }
                     }
                     catch {
-                        # Not JSON or parsing failed - that's okay
+                        # Analysis failed - that's okay
                         $summaryInfo[$part.path] = "Text content ($($decodedContent.Length) characters)"
                     }
                 }
@@ -466,17 +478,17 @@ function Get-KqlDashboardDefinition {
             }
         }
         
-        Write-Log "Successfully decoded KQL dashboard definition"
+        Write-Log "Successfully decoded environment definition"
         
         # Display summary
-        Write-Log "KQL dashboard definition summary:"
+        Write-Log "Environment definition summary:"
         foreach ($key in $summaryInfo.Keys) {
             Write-Log "  $key : $($summaryInfo[$key])"
         }
         
         # Save to files if folder path specified
         if ($FolderPath) {
-            Write-Log "Saving decoded KQL dashboard definition files to: $FolderPath"
+            Write-Log "Saving decoded environment definition files to: $FolderPath"
             
             # Create directory and replace if it exists
             if (Test-Path $FolderPath) {
@@ -485,41 +497,49 @@ function Get-KqlDashboardDefinition {
             }
             New-Item -ItemType Directory -Path $FolderPath -Force | Out-Null
             
-            # Save each part to a separate file
+            # Save each part to a separate file, preserving directory structure
             foreach ($partPath in $decodedParts.Keys) {
-                $fileName = $partPath -replace '[\\/:*?"<>|]', '_'  # Replace invalid characters (but preserve dots)
-                $filePath = Join-Path $FolderPath $fileName
+                # Clean the path but preserve directory structure
+                $relativePath = $partPath -replace '^\/', ''  # Remove leading slash if present
+                $fullFilePath = Join-Path $FolderPath $relativePath
+                
+                # Create subdirectories if needed
+                $directory = Split-Path $fullFilePath -Parent
+                if (-not (Test-Path $directory)) {
+                    New-Item -ItemType Directory -Path $directory -Force | Out-Null
+                }
                 
                 try {
-                    # Try to pretty-print JSON files
+                    # Handle different file types appropriately
                     if ($partPath -like "*.json" -and -not $decodedParts[$partPath].StartsWith("[")) {
+                        # Pretty-print JSON files
                         $jsonContent = $decodedParts[$partPath] | ConvertFrom-Json
-                        $jsonContent | ConvertTo-Json -Depth 10 | Set-Content -Path $filePath -Encoding UTF8 -Force
+                        $jsonContent | ConvertTo-Json -Depth 10 | Set-Content -Path $fullFilePath -Encoding UTF8 -Force
+                    }
+                    elseif ($partPath -like "*.yml" -or $partPath -like "*.yaml") {
+                        # Save YAML files as-is
+                        $decodedParts[$partPath] | Set-Content -Path $fullFilePath -Encoding UTF8 -Force
                     }
                     else {
-                        $decodedParts[$partPath] | Set-Content -Path $filePath -Encoding UTF8 -Force
+                        # Save other files as-is
+                        $decodedParts[$partPath] | Set-Content -Path $fullFilePath -Encoding UTF8 -Force
                     }
                     
-                    Write-Log "  Saved: $fileName"
+                    Write-Log "  Saved: $relativePath"
                 }
                 catch {
-                    Write-Log "  Failed to save $fileName : $($_.Exception.Message)" "WARNING"
+                    Write-Log "  Failed to save $relativePath : $($_.Exception.Message)" "WARNING"
                 }
             }
             
-            Write-Log "KQL dashboard definition files saved successfully"
-            
-            # Tokenize the JSON files unless skipped
-            if (-not $SkipTokenization) {
-                Invoke-JsonTokenization -FolderPath $FolderPath -SchemaType "RealTimeDashboard"
-            }
+            Write-Log "Environment definition files saved successfully"
         }
         
         # Return the decoded parts
         return $decodedParts
     }
     catch {
-        Write-Log "Failed to get KQL dashboard definition: $($_.Exception.Message)" "ERROR"
+        Write-Log "Failed to get environment definition: $($_.Exception.Message)" "ERROR"
         throw
     }
 }
@@ -529,45 +549,54 @@ try {
     # Calculate default folder path if not provided
     if (-not $FolderPath) {
         $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-        # Script is located at infra\scripts\utils\Get-FabricRealTimeDashboardDefinition.ps1
+        # Script is located at infra\scripts\utils\Get-FabricEnvironmentDefinition.ps1
         $RepoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $ScriptDir))
-        $FolderPath = Join-Path $RepoRoot "src" | Join-Path -ChildPath "definitions" | Join-Path -ChildPath "realTimeDashboard"
+        $FolderPath = Join-Path $RepoRoot "src" | Join-Path -ChildPath "definitions" | Join-Path -ChildPath "environment"
         Write-Log "Using default folder path: $FolderPath"
     }
     
-    Write-Log "Starting Fabric Real Time Dashboard (KQL Dashboard) Definition retrieval"
+    Write-Log "Starting Fabric Environment Definition retrieval"
     Write-Log "Workspace ID: $WorkspaceId"
-    Write-Log "KQL Dashboard ID: $KqlDashboardId"
+    Write-Log "Environment ID: $EnvironmentId"
     Write-Log "Folder Path: $FolderPath"
     
     if ($Format) {
         Write-Log "Format: $Format"
     }
     
-    # Get and display KQL dashboard definition
-    $dashboardDefinition = Get-KqlDashboardDefinition
+    # Get and display environment definition
+    $environmentDefinition = Get-EnvironmentDefinition
     
-    Write-Log "KQL dashboard definition retrieved successfully" 
+    Write-Log "Environment definition retrieved successfully" 
     
     # Display the decoded content
-    Write-Host "`n=== DECODED KQL DASHBOARD DEFINITION PARTS ===" -ForegroundColor Green
+    Write-Host "`n=== DECODED ENVIRONMENT DEFINITION PARTS ===" -ForegroundColor Green
     
-    foreach ($partPath in $dashboardDefinition.Keys) {
+    foreach ($partPath in $environmentDefinition.Keys) {
         Write-Host "`n--- PART: $partPath ---" -ForegroundColor Cyan
         
-        # Try to format as JSON if possible
+        # Try to format based on file type
         try {
-            if ($partPath -like "*.json" -and -not $dashboardDefinition[$partPath].StartsWith("[")) {
-                $jsonContent = $dashboardDefinition[$partPath] | ConvertFrom-Json
+            if ($partPath -like "*.json" -and -not $environmentDefinition[$partPath].StartsWith("[")) {
+                $jsonContent = $environmentDefinition[$partPath] | ConvertFrom-Json
                 $jsonContent | ConvertTo-Json -Depth 10
             }
             else {
-                $dashboardDefinition[$partPath]
+                # Display first few lines for large files
+                $content = $environmentDefinition[$partPath]
+                $lines = $content -split "`n"
+                if ($lines.Count -gt 50) {
+                    $lines[0..49] -join "`n"
+                    Write-Host "`n... (truncated, full content saved to file) ..." -ForegroundColor Yellow
+                }
+                else {
+                    $content
+                }
             }
         }
         catch {
-            # Display as-is if JSON parsing fails
-            $dashboardDefinition[$partPath]
+            # Display as-is if processing fails
+            $environmentDefinition[$partPath]
         }
     }
     
