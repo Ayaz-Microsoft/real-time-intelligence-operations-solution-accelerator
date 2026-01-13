@@ -256,7 +256,14 @@ Select one of the following options to deploy the solution:
    cd real-time-intelligence-operations-solution-accelerator
    ```
 
-6. Proceed to deployment: [Step 4: Deploy](#step-4-deploy-the-solution)
+6. **Authenticate with Azure** (VS Code Web requires device code authentication):
+   
+   ```shell
+   az login --use-device-code
+   ```
+   > **Note:** In VS Code Web environment, the regular `az login` command may fail. Use the `--use-device-code` flag to authenticate via device code flow. Follow the prompts in the terminal to complete authentication.
+
+7. Proceed to deployment: [Step 4: Deploy](#step-4-deploy-the-solution)
 
 ---
 
