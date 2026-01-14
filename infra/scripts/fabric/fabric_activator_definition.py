@@ -169,7 +169,7 @@ def transform_activator_config(
     
     return activator_config
 
-def update_activator_definition(
+def setup_activator_definition(
     workspace_client: FabricWorkspaceApiClient,
     workspace_id: str,
     activator_id: str,
