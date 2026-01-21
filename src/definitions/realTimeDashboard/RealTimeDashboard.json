@@ -21,7 +21,7 @@
       "visualOptions": {
         "table__enableRenderLinks": true,
         "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": [],
@@ -67,7 +67,7 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": []
@@ -111,7 +111,7 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": []
@@ -157,18 +157,18 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [
           {
             "interaction": "column",
             "property": "avgSpeed",
             "parameterId": "674b5b0c-92bc-472a-99b7-528c32250537",
-            "disabled": false
+            "disabled": true
           },
           {
             "parameterId": "4e53a01c-162c-406f-b0d3-5add1f64b933",
-            "disabled": false
+            "disabled": true
           }
         ],
         "drillthrough": []
@@ -212,7 +212,7 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": []
@@ -258,18 +258,18 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [
           {
             "interaction": "column",
             "property": "avgSpeed",
             "parameterId": "674b5b0c-92bc-472a-99b7-528c32250537",
-            "disabled": false
+            "disabled": true
           },
           {
             "parameterId": "4e53a01c-162c-406f-b0d3-5add1f64b933",
-            "disabled": false
+            "disabled": true
           }
         ],
         "drillthrough": []
@@ -315,18 +315,18 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [
           {
             "interaction": "column",
             "property": "avgSpeed",
             "parameterId": "674b5b0c-92bc-472a-99b7-528c32250537",
-            "disabled": false
+            "disabled": true
           },
           {
             "parameterId": "4e53a01c-162c-406f-b0d3-5add1f64b933",
-            "disabled": false
+            "disabled": true
           }
         ],
         "drillthrough": []
@@ -350,7 +350,7 @@
       "visualOptions": {
         "table__enableRenderLinks": true,
         "colorRulesDisabled": true,
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": [],
@@ -376,7 +376,7 @@
       "visualOptions": {
         "table__enableRenderLinks": true,
         "colorRulesDisabled": false,
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": [],
@@ -470,7 +470,7 @@
         "seriesColumns": null,
         "xAxisScale": "linear",
         "verticalLine": "",
-        "crossFilterDisabled": false,
+        "crossFilterDisabled": true,
         "drillthroughDisabled": false,
         "crossFilter": [],
         "drillthrough": []
@@ -526,11 +526,11 @@
     {
       "kind": "kusto-trident",
       "scopeId": "kusto-trident",
-      "clusterUri": "__TOKEN_clusterUri_1__",
-      "database": "__TOKEN_database_1__",
+      "clusterUri": "https://trd-jbpewx6g2uerkj707g.z0.kusto.fabric.microsoft.com",
+      "database": "b5cee127-3fb5-4417-8024-3a0e69f126fa",
       "name": "manufacturing_eventhouse",
       "id": "dc5f8f55-0327-42f8-b5fb-32f58e44be07",
-      "workspace": "__TOKEN_workspace_1__",
+      "workspace": "06726b12-6543-4e1c-b5e5-6f11596fb669",
       "queryResultsCacheMaxAge": 3600000
     }
   ],
@@ -684,5 +684,6 @@
       "id": "0cbfc6b7-10c2-44d5-94ce-e4b55bc16638",
       "usedVariables": []
     }
-  ]
+  ],
+  "title": "rti_dashboard_rtichange55sji2r"
 }
