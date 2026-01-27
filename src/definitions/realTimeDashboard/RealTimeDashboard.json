@@ -526,11 +526,11 @@
     {
       "kind": "kusto-trident",
       "scopeId": "kusto-trident",
-      "clusterUri": "https://trd-jbpewx6g2uerkj707g.z0.kusto.fabric.microsoft.com",
-      "database": "b5cee127-3fb5-4417-8024-3a0e69f126fa",
+      "clusterUri": "__TOKEN_clusterUri_1__",
+      "database": "__TOKEN_database_1__",
       "name": "manufacturing_eventhouse",
       "id": "dc5f8f55-0327-42f8-b5fb-32f58e44be07",
-      "workspace": "06726b12-6543-4e1c-b5e5-6f11596fb669",
+      "workspace": "__TOKEN_workspace_1__",
       "queryResultsCacheMaxAge": 3600000
     }
   ],
