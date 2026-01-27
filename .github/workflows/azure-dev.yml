@@ -3,9 +3,10 @@ name: CI/CD Azure - Real-Time Intelligence Operations
 # Trigger the workflow on push to main/master or manual dispatch
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
+  push:
+    branches:
+      - main
+      - dev
   #     - "*"
   #   paths:
   #     - "infra/**"
