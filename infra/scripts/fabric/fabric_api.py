@@ -25,7 +25,6 @@ import time
 import json
 import base64
 import requests
-import uuid
 from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
 from azure.identity import AzureCliCredential, DefaultAzureCredential
@@ -3000,7 +2999,7 @@ class FabricWorkspaceApiClient(FabricApiClient):
         """
         try:
             self._log(f"Deleting activator with ID '{activator_id}'")
-            response = self._make_request(f"workspaces/{self.workspace_id}/reflexes/{activator_id}", method="DELETE")
+            self._make_request(f"workspaces/{self.workspace_id}/reflexes/{activator_id}", method="DELETE")
             self._log(f"✅ Successfully deleted activator")
             return True
             
@@ -3054,7 +3053,7 @@ class FabricWorkspaceApiClient(FabricApiClient):
             if update_metadata:
                 endpoint += "?updateMetadata=true"
             
-            response = self._make_request(endpoint, method="POST", data=payload)
+            self._make_request(endpoint, method="POST", data=payload)
             self._log(f"✅ Successfully updated activator definition")
             return True
             
@@ -3516,8 +3515,6 @@ class FabricWorkspaceApiClient(FabricApiClient):
         except FabricApiError:
             raise
         except Exception as e:
-            elapsed_time = time.time() - start_time
-            duration_str = self._format_duration(elapsed_time)
             raise FabricApiError(f"Unexpected error executing notebook {notebook_id}: {str(e)}")
 
     # Environment operations

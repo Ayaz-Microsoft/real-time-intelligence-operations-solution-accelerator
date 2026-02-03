@@ -499,7 +499,6 @@ def main():
     dashboard_id = dashboard_result.get('id') if dashboard_result else None
     eventstream_id = eventstream_result.get('id') if eventstream_result else None
     activator_id = activator_result.get('id') if activator_result else None
-    eventhub_connection_id = eventhub_connection_result.get('id') if eventhub_connection_result else None
     eventhouse_id = eventhouse_result.get('id') if eventhouse_result else None
     
     # Azure

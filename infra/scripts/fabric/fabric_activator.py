@@ -115,7 +115,6 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    base_client = FabricApiClient()
     from fabric_auth import authenticate_workspace
     
     workspace_client = authenticate_workspace(args.workspace_id)
@@ -125,7 +124,6 @@ Examples:
     
     result = create_activator(
         workspace_client=workspace_client,
-        workspace_id=args.workspace_id,
         activator_name=args.activator_name,
         activator_description=args.activator_description
     )

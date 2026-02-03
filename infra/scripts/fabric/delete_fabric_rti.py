@@ -36,10 +36,6 @@ from fabric_connection_delete import delete_connection
 from fabric_common_utils import get_required_env_var, print_step, print_steps_summary
 
 def main():
-    # Calculate repository root directory (3 levels up from this script)
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_dir = os.path.abspath(os.path.join(script_dir, "..", "..", ".."))
-    
     # Load configuration from environment variables
     solution_name = get_required_env_var("AZURE_ENV_NAME")
     solution_suffix = get_required_env_var("SOLUTION_SUFFIX")
@@ -80,7 +76,7 @@ def main():
         workspace_id = None
     else:
         executed_steps.append("lookup_workspace")
-        workspace_id, workspace_display_name = lookup_result
+        workspace_id, _ = lookup_result
     
     # Step 3: Delete Event Hub connection
     print_step(3, 4, "Deleting Event Hub connection", connection_name=connection_name)
