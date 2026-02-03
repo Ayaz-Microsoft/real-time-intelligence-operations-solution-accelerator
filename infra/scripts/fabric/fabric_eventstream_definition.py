@@ -25,7 +25,7 @@ import json
 import os
 import sys
 from typing import Dict, Any, Optional
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 from fabric_auth import authenticate_workspace
 
 def transform_eventstream_config(eventstream_config: dict,

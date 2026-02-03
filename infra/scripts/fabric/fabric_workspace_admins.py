@@ -24,7 +24,7 @@ Requirements:
 import argparse
 import sys
 import uuid
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 from graph_api import create_graph_client, GraphApiError
 
 ####################

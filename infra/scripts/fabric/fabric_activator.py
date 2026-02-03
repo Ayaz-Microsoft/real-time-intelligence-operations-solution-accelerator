@@ -15,12 +15,10 @@ Requirements:
     - Contributor permissions in the target workspace
 """
 
-import os
 import sys
 import argparse
-from typing import Optional
 
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 def create_activator(workspace_client: FabricWorkspaceApiClient,
                     activator_name: str = "rti_activator",

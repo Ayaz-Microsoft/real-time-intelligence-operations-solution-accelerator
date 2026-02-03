@@ -23,7 +23,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union, Any, Tuple
-from azure.identity import AzureCliCredential, DefaultAzureCredential
+from azure.identity import AzureCliCredential
 
 
 class GraphApiError(Exception):

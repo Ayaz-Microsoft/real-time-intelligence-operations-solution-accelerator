@@ -25,9 +25,8 @@ import time
 import json
 import base64
 import requests
-from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
-from azure.identity import AzureCliCredential, DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 
 class FabricApiError(Exception):

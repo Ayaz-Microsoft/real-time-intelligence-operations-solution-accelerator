@@ -30,7 +30,7 @@ import argparse
 import sys
 from azure.identity import AzureCliCredential
 from azure.mgmt.eventhub import EventHubManagementClient
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricApiClient, FabricApiError
 
 
 def get_event_hub_primary_key(namespace_name: str, hub_name: str, subscription_id: str, resource_group_name: str, authorization_rule_name: str = "RootManageSharedAccessKey") -> dict:
