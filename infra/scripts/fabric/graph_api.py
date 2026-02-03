@@ -224,6 +224,7 @@ class GraphApiClient:
             if e.status_code == 404:
                 return None
             raise
+        return None
     
     def get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -250,6 +251,7 @@ class GraphApiClient:
             if e.status_code == 404:
                 return None
             raise
+        return None
     
     # Service Principal operations
     def get_service_principal_by_id(self, service_principal_id: str) -> Optional[Dict[str, Any]]:
@@ -277,6 +279,7 @@ class GraphApiClient:
             if e.status_code == 404:
                 return None
             raise
+        return None
     
     def get_service_principal_by_app_id(self, app_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -303,6 +306,7 @@ class GraphApiClient:
             if e.status_code == 404:
                 return None
             raise
+        return None
     
     # Combined operations
     def resolve_principal(self, identifier: str) -> Tuple[str, str, Dict[str, Any]]:
