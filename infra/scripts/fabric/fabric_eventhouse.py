@@ -16,11 +16,10 @@ Requirements:
 """
 
 import argparse
-import os
 import sys
 import time
 from typing import Optional, Dict, Any
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 
 def _rename_default_database(workspace_client: FabricWorkspaceApiClient, 

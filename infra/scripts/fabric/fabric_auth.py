@@ -12,7 +12,6 @@ Requirements:
     - Azure CLI authentication or other Azure credentials configured
 """
 
-import argparse
 from fabric_api import FabricApiClient, FabricWorkspaceApiClient
 
 def authenticate():

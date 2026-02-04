@@ -34,11 +34,7 @@ import re
 import sys
 from typing import Dict, Any, Optional
 
-from fabric_api import (
-    FabricApiClient,
-    FabricWorkspaceApiClient,
-    FabricApiError
-)
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 def transform_activator_config(
     activator_config: list,

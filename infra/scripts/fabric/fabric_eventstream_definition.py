@@ -25,7 +25,8 @@ import json
 import os
 import sys
 from typing import Dict, Any, Optional
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
+from fabric_auth import authenticate_workspace
 
 def transform_eventstream_config(eventstream_config: dict,
                                eventhouse_database_id: str = None,
@@ -350,10 +351,13 @@ Examples:
     args = parser.parse_args()
     
     # Execute the main logic
-    fabric_client = FabricApiClient()
+    workspace_client = authenticate_workspace(args.workspace_id)
+    if not workspace_client:
+        print("❌ Failed to authenticate workspace-specific Fabric API client")
+        sys.exit(1)
     
     result = setup_eventstream_definition(
-        fabric_client=fabric_client,
+        workspace_client=workspace_client,
         workspace_id=args.workspace_id,
         eventstream_id=args.eventstream_id,
         eventstream_file_path=args.eventstream_file,

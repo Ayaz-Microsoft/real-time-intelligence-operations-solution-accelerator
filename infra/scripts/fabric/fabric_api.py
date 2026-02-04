@@ -25,10 +25,8 @@ import time
 import json
 import base64
 import requests
-import uuid
-from datetime import datetime
 from typing import Dict, List, Optional, Union, Any
-from azure.identity import AzureCliCredential, DefaultAzureCredential
+from azure.identity import AzureCliCredential
 from azure.storage.filedatalake import DataLakeServiceClient, FileSystemClient
 
 class FabricApiError(Exception):
@@ -336,8 +334,8 @@ class FabricApiClient:
                                         error_code = error_details.get('code', 'Unknown')
                                         error_desc = error_details.get('message', 'No details available')
                                         error_message = f"{operation_display} failed with error {error_code}: {error_desc}"
-                                except:
-                                    pass
+                                except Exception as e:
+                                    self._log(f"Could not extract error details: {e}", "DEBUG")
                                 raise FabricApiError(error_message)
                             elif job_status == 'Cancelled':
                                 raise FabricApiError(f"{operation_display} was cancelled")
@@ -3000,7 +2998,7 @@ class FabricWorkspaceApiClient(FabricApiClient):
         """
         try:
             self._log(f"Deleting activator with ID '{activator_id}'")
-            response = self._make_request(f"workspaces/{self.workspace_id}/reflexes/{activator_id}", method="DELETE")
+            self._make_request(f"workspaces/{self.workspace_id}/reflexes/{activator_id}", method="DELETE")
             self._log(f"✅ Successfully deleted activator")
             return True
             
@@ -3054,7 +3052,7 @@ class FabricWorkspaceApiClient(FabricApiClient):
             if update_metadata:
                 endpoint += "?updateMetadata=true"
             
-            response = self._make_request(endpoint, method="POST", data=payload)
+            self._make_request(endpoint, method="POST", data=payload)
             self._log(f"✅ Successfully updated activator definition")
             return True
             
@@ -3516,8 +3514,6 @@ class FabricWorkspaceApiClient(FabricApiClient):
         except FabricApiError:
             raise
         except Exception as e:
-            elapsed_time = time.time() - start_time
-            duration_str = self._format_duration(elapsed_time)
             raise FabricApiError(f"Unexpected error executing notebook {notebook_id}: {str(e)}")
 
     # Environment operations

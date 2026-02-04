@@ -274,7 +274,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        results = load_data_to_fabric(
+        _results = load_data_to_fabric(
             cluster_uri=args.cluster_uri,
             database_name=args.database,
             data_path=args.data_path,

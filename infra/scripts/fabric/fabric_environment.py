@@ -22,7 +22,7 @@ import sys
 import os
 import base64
 from typing import Optional, Dict, Any
-from fabric_api import FabricApiClient, FabricWorkspaceApiClient, FabricApiError
+from fabric_api import FabricWorkspaceApiClient, FabricApiError
 
 
 def read_environment_yml(file_path: str) -> str:

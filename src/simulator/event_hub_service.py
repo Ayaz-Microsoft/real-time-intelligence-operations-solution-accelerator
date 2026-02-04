@@ -6,16 +6,13 @@ from typing import Any
 try:
     from azure.eventhub import EventHubProducerClient, EventData
     from azure.identity import AzureCliCredential
-except ImportError:
-    print(
+except ImportError as e:
+    raise ImportError(
         "❌ Error: azure-eventhub and azure-identity packages are "
-        "required."
-    )
-    print(
+        "required.\n"
         "Install them using: "
         "pip install azure-eventhub azure-identity"
-    )
-    raise
+    ) from e
 
 
 class EventHubService:

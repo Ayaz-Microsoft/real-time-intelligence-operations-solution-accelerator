@@ -115,7 +115,6 @@ Examples:
     
     result = create_eventstream(
         workspace_client=workspace_client,
-        workspace_id=args.workspace_id,
         eventstream_name=args.eventstream_name
     )
     

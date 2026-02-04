@@ -318,7 +318,7 @@ def generate_sample_data(
 
 
 if __name__ == "__main__":
-    result = generate_sample_data(
+    _result = generate_sample_data(
         num_sites=2,
         num_assets_per_site=1,
         num_products=20,
