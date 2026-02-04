@@ -334,7 +334,7 @@ class FabricApiClient:
                                         error_code = error_details.get('code', 'Unknown')
                                         error_desc = error_details.get('message', 'No details available')
                                         error_message = f"{operation_display} failed with error {error_code}: {error_desc}"
-                                except:
+                                except Exception:
                                     pass
                                 raise FabricApiError(error_message)
                             elif job_status == 'Cancelled':
