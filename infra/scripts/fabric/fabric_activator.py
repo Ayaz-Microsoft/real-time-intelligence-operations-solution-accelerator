@@ -14,7 +14,7 @@ Requirements:
     - Azure CLI authentication or other Azure credentials configured
     - Contributor permissions in the target workspace
 """
-
+import os
 import sys
 import argparse
 
